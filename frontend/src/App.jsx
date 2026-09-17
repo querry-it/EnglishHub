@@ -1,60 +1,28 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
-import Hero from './components/Hero';
-import FeatureCard from './components/FeatureCard';
+import Home from './pages/Home';
+import About from './pages/About';
 
 function App() {
-  const features = [
-    {
-      icon: '⚛️',
-      title: 'React 18 + Vite',
-      description: 'Tốc độ HMR (Hot Module Replacement) siêu nhanh, trải nghiệm lập trình mượt mà tối đa.'
-    },
-    {
-      icon: '🟢',
-      title: 'Express Backend Skeleton',
-      description: 'Khung Node.js Express gọn nhẹ sẵn sàng để bạn định nghĩa các API routes.'
-    },
-    {
-      icon: '🎨',
-      title: 'Giao Diện Glassmorphism',
-      description: 'Thiết kế CSS hiện đại sử dụng HSL Palette, hiệu ứng kính mờ và micro-animations sống động.'
-    },
-    {
-      icon: '⚡',
-      title: 'Đồng Bộ Khởi Chạy',
-      description: 'Sử dụng script npm run dev để chạy đồng thời cả Frontend và Backend bằng concurrently.'
-    }
-  ];
-
   return (
-    <>
+    <Router>
       <Header />
-      <main className="container" style={{ flex: 1 }}>
-        <Hero />
-
-        <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
-            Tính Năng <span className="gradient-text">Nổi Bật</span>
-          </h2>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Nền tảng vững chắc để bạn bắt đầu xây dựng dự án EnglishHub hoặc bất kỳ sản phẩm web nào.
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        {/* Placeholder fallback for remaining routes */}
+        <Route path="*" element={<Home />} />
+      </Routes>
+      <footer>
+        <div className="container py-6 text-center text-sm text-slate-400 space-y-1">
+          <p>© 2026 EnglishHub — Smart English Learning Management System.</p>
+          <p className="text-xs text-amber-400/90 font-medium">
+            ⚠️ Dữ liệu mô phỏng phục vụ mục đích học tập
           </p>
         </div>
-
-        <div className="features-grid">
-          {features.map((item, index) => (
-            <FeatureCard key={index} {...item} />
-          ))}
-        </div>
-      </main>
-
-      <footer>
-        <div className="container">
-          <p>© 2026 EnglishHub Project Starter. Built with React.js & Node.js Express.</p>
-        </div>
       </footer>
-    </>
+    </Router>
   );
 }
 
