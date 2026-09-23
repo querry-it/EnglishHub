@@ -23,7 +23,7 @@ const LoginPage = () => {
 
       if (response.data.success) {
         toast.success(response.data.message || 'Đăng nhập thành công!');
-        // Lưu Access Token vào localStorage hoặc State management (như Redux/Zustand)
+    
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('user', JSON.stringify(response.data.user));
 
