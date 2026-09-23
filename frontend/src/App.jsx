@@ -1,60 +1,101 @@
 import React from 'react';
-import Header from './components/Header';
-import Hero from './components/Hero';
-import FeatureCard from './components/FeatureCard';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Public Pages
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import AboutPage from './pages/AboutPage';
+import RoadmapsPage from './pages/RoadmapsPage';
+import CoursesPage from './pages/CoursesPage';
+import CourseDetailPage from './pages/CourseDetailPage';
+
+// Student Pages
+import DashboardPage from './pages/DashboardPage';
+import LessonPage from './pages/LessonPage';
+import PracticePage from './pages/PracticePage';
+import FlashcardsPage from './pages/FlashcardsPage';
+import SubmissionsPage from './pages/SubmissionsPage';
+
+// Instructor Pages
+import InstructorCoursesPage from './pages/InstructorCoursesPage';
+import GradingPage from './pages/GradingPage';
+
+// Admin Pages
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminUsersPage from './pages/AdminUsersPage';
+import AuditLogsPage from './pages/AuditLogsPage';
 
 function App() {
-  const features = [
-    {
-      icon: '⚛️',
-      title: 'React 18 + Vite',
-      description: 'Tốc độ HMR (Hot Module Replacement) siêu nhanh, trải nghiệm lập trình mượt mà tối đa.'
-    },
-    {
-      icon: '🟢',
-      title: 'Express Backend Skeleton',
-      description: 'Khung Node.js Express gọn nhẹ sẵn sàng để bạn định nghĩa các API routes.'
-    },
-    {
-      icon: '🎨',
-      title: 'Giao Diện Glassmorphism',
-      description: 'Thiết kế CSS hiện đại sử dụng HSL Palette, hiệu ứng kính mờ và micro-animations sống động.'
-    },
-    {
-      icon: '⚡',
-      title: 'Đồng Bộ Khởi Chạy',
-      description: 'Sử dụng script npm run dev để chạy đồng thời cả Frontend và Backend bằng concurrently.'
-    }
-  ];
-
   return (
-    <>
-      <Header />
-      <main className="container" style={{ flex: 1 }}>
-        <Hero />
+    <Router>
+      <div className="flex flex-col min-h-screen bg-[#0b1120]">
+        <Toaster position="top-right" />
+        <Routes>
+          {/* --- PUBLIC ROUTES --- */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/courses/:courseSlug" element={<CourseDetailPage />} />
 
-        <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
-            Tính Năng <span className="gradient-text">Nổi Bật</span>
-          </h2>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Nền tảng vững chắc để bạn bắt đầu xây dựng dự án EnglishHub hoặc bất kỳ sản phẩm web nào.
-          </p>
-        </div>
+          {/* --- STUDENT ROUTES (Yêu cầu đăng nhập) --- */}
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/roadmaps" element={<ProtectedRoute><RoadmapsPage /></ProtectedRoute>} />
+          <Route path="/flashcards" element={<ProtectedRoute><FlashcardsPage /></ProtectedRoute>} />
+          <Route path="/my-submissions" element={<ProtectedRoute><SubmissionsPage /></ProtectedRoute>} />
+          <Route path="/learn/:courseSlug/lessons/:lessonId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
+          <Route path="/learn/:courseSlug/lessons/:lessonId/practice" element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
 
-        <div className="features-grid">
-          {features.map((item, index) => (
-            <FeatureCard key={index} {...item} />
-          ))}
-        </div>
-      </main>
+          {/* --- INSTRUCTOR ROUTES (Chỉ Giảng viên & Admin) --- */}
+          <Route
+            path="/instructor/courses"
+            element={
+              <ProtectedRoute allowedRoles={['INSTRUCTOR', 'ADMIN']}>
+                <InstructorCoursesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/instructor/grading"
+            element={
+              <ProtectedRoute allowedRoles={['INSTRUCTOR', 'ADMIN']}>
+                <GradingPage />
+              </ProtectedRoute>
+            }
+          />
 
-      <footer>
-        <div className="container">
-          <p>© 2026 EnglishHub Project Starter. Built with React.js & Node.js Express.</p>
-        </div>
-      </footer>
-    </>
+          {/* --- ADMIN ROUTES (Chỉ Admin) --- */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/audit-logs"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AuditLogsPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
