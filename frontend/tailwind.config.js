@@ -17,19 +17,7 @@ export default {
           500: '#F59E0B',
           600: '#D97706',
           700: '#B45309',
-        },
-        success: {
-          50: '#ECFDF5',
-          600: '#059669',
-        },
-        error: {
-          50: '#FFF1F2',
-          600: '#E11D48',
         }
-      },
-      fontFamily: {
-        heading: ['Outfit', 'Quicksand', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
       }
     },
   },
