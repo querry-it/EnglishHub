@@ -49,7 +49,10 @@ model User {
   avatarUrl          String?              @map("avatar_url") @db.VarChar(500)
   role               Role
   isActive           Boolean              @default(true) @map("is_active")
+  isApproved         Boolean              @default(true) @map("is_approved")
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  
+  instructorProfile  InstructorProfile?
   courses            Course[]
   enrollments        Enrollment[]
   submissions        Submission[]
@@ -60,6 +63,19 @@ model User {
 
   @@map("users")
 }
+
+model InstructorProfile {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @unique @map("user_id") @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio          String?  @db.Text
+  certificates String?  @db.Text
+  cvUrl        String?  @map("cv_url") @db.VarChar(500)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("instructor_profiles")
+}
+
 
 model RefreshToken {
   id        String   @id @default(uuid()) @db.Uuid

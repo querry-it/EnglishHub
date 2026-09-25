@@ -1,5 +1,5 @@
 {
-  "name": "english-hub-backend",
+  "name": "englishhub-backend",
   "version": "1.0.0",
   "description": "Node.js Express backend API for EnglishHub",
   "main": "src/index.js",
@@ -9,6 +9,10 @@
     "dev": "nodemon src/index.js",
     "postinstall": "prisma skills sync || exit 0"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+
   "dependencies": {
     "@prisma/client": "^5.14.0",
     "bcrypt": "^6.0.0",

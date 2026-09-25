@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -10,6 +11,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -24,11 +26,11 @@ const LoginPage = () => {
       if (response.data.success) {
         toast.success(response.data.message || 'Đăng nhập thành công!');
     
-        localStorage.setItem('accessToken', response.data.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Sử dụng hàm login từ Context để cập nhật trạng thái toàn ứng dụng
+        login(response.data.user, response.data.accessToken);
 
         // Điều hướng sau khi đăng nhập thành công
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error) {
       const msg = error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại!';

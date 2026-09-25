@@ -1,7 +1,7 @@
 {
-  "name": "english-hub",
+  "name": "englishhub",
   "version": "1.0.0",
-  "description": "Full-stack project starter with React.js (Vite) frontend and Node.js Express backend",
+  "description": "Full-stack project starter with React.js (Vite) frontend and Node.js Express backend for EnglishHub LMS",
   "private": true,
   "scripts": {
     "setup": "npm run install:all",
