@@ -14,6 +14,7 @@ import Speaking from './pages/Speaking';
 import Exams from './pages/Exams';
 import Games from './pages/Games';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 import Courses from './pages/Courses';
 import Community from './pages/Community';
@@ -42,7 +43,7 @@ function AppContent() {
   const location = useLocation();
   const { isLoginModalOpen, closeLoginModal, loading, user } = useAuth();
 
-  const isPublicPage = ['/intro', '/welcome', '/login', '/register'].includes(location.pathname);
+  const isPublicPage = ['/home', '/welcome', '/login', '/register'].includes(location.pathname);
 
   if (loading) {
     return (
@@ -52,7 +53,7 @@ function AppContent() {
     );
   }
 
-  // Trang Public (Intro, Login, Register)
+  // Trang Public (home, Login, Register)
   if (isPublicPage) {
     return (
       <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
@@ -60,11 +61,11 @@ function AppContent() {
         <AppHeader />
         <main className="flex-1">
           <Routes>
-            <Route path="/intro" element={<Home />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/welcome" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Login />} />
-            <Route path="*" element={<Navigate to="/intro" replace />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </main>
         <Footer />

@@ -3,8 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
-import courseRoutes from './routes/courseRoutes.js';
-import vocabRoutes from './routes/vocabRoutes.js';
+
+// import courseRoutes from './routes/courseRoutes.js';
+// import vocabRoutes from './routes/vocabRoutes.js';
 
 dotenv.config();
 
@@ -21,8 +22,8 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/courses', courseRoutes);
-app.use('/api/vocab', vocabRoutes);
+// app.use('/api/courses', courseRoutes);
+// app.use('/api/vocab', vocabRoutes);
 app.get('/api', (req, res) => {
   res.json({ message: 'Express Backend API Server running' });
 });
