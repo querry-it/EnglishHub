@@ -14,7 +14,7 @@ export default function Footer() {
           {/* Column 1: Brand & App Download Links */}
           <div className="lg:col-span-5 space-y-5">
             <Link 
-              to="/intro" 
+              to="/home" 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
               className="flex items-center gap-2.5 group"
             >

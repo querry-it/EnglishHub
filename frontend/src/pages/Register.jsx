@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import LoginModal from '../components/LoginModal';
+import RegisterModal from '../components/RegisterModal';
 import { useAuth } from '../context/AuthContext';
 
-export default function Login() {
+export default function Register() {
   const navigate = useNavigate();
   const { closeLoginModal } = useAuth();
 
@@ -14,7 +14,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 relative">
-      <LoginModal isOpen={true} onClose={handleClose} />
+      <RegisterModal isOpen={true} onClose={handleClose} />
     </div>
   );
 }

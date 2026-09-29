@@ -27,7 +27,7 @@ async function main() {
       isApproved: true,
     },
   });
-  console.log(' Đã tạo Admin mẫu: admin@englishhub.edu.vn / Adminenglishhub@!');
+  console.log(' Đã tạo Admin mẫu: admin@englishhub.edu.vn / Adminenglishhub@');
 
   // Khởi tạo tài khoản GIẢNG VIÊN mẫu (Đã duyệt)
   const instructor1PasswordHash = await bcrypt.hash('alexenglishhub@', saltRounds);

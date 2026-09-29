@@ -74,7 +74,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
       
       {/* 1. TOP HEADER (LOGO) */}
       <div className="h-16 px-4 border-b-2 border-slate-300 dark:border-slate-700 shrink-0 flex items-center justify-between">
-        <Link to="/intro" className="flex items-center gap-2.5 px-1 group" title="Quay lại trang giới thiệu">
+        <Link to="/home" className="flex items-center gap-2.5 px-1 group" title="Quay lại trang giới thiệu">
           <AppMascot className="w-8 h-8 shrink-0 group-hover:scale-105 transition-transform" />
           {!collapsed && (
             <span className="font-extrabold text-xl text-slate-900 dark:text-white tracking-tight">
