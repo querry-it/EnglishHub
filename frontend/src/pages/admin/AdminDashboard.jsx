@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, BookOpen, FileText, Bell, Settings, BarChart3, TrendingUp, DollarSign, UserPlus, ShoppingBag, Eye, ArrowUpRight, ArrowDownRight, Sparkles, ChevronRight, Star, Activity, LogOut, Menu, X } from 'lucide-react';
 import AppMascot from '../../components/AppMascot';
+
+import AdminUsersPage from './AdminUsersPage';
+import AdminCoursesPage from './AdminCoursesPage';
 
 function AdminSidebar({ mobileOpen, onClose }) {
   const location = useLocation();
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Users, label: 'Quản lý Users', path: '/admin/users' },
-    { icon: BookOpen, label: 'Quản lý Khóa học', path: '/admin/courses' },
+    { icon: BookOpen, label: 'Quản lý Bài học', path: '/admin/courses' },
     { icon: FileText, label: 'Quản lý Blog', path: '/admin/blog' },
     { icon: Bell, label: 'Thông báo', path: '/admin/notifications' },
   ];
@@ -26,6 +29,10 @@ function AdminSidebar({ mobileOpen, onClose }) {
         <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
       </div>
       <nav className="space-y-0.5">
+        <div className="px-6 mb-4 mt-2">
+          <div className="h-px bg-slate-700/50 w-full mb-4"></div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Quản lý hệ thống</p>
+        </div>
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -43,6 +50,127 @@ function AdminSidebar({ mobileOpen, onClose }) {
         </Link>
       </div>
     </aside>
+  );
+}
+
+function DashboardOverview({ stats, monthlyRevenue, topCourses, recentOrders, statusColors, statusLabels }) {
+  return (
+    <>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {stats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg hover:border-indigo-200 transition-all animate-fade-in-up" style={{ animationDelay: `${i * 0.08}s` }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${stat.bg} border flex items-center justify-center ${stat.color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className={`text-xs font-bold flex items-center gap-0.5 ${stat.up ? 'text-emerald-600' : 'text-rose-500'}`}>
+                  {stat.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {stat.change}
+                </span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">{stat.value}</div>
+              <div className="text-xs text-slate-500 font-medium">{stat.label}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Revenue Chart */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-indigo-500" /> Doanh thu 6 tháng gần nhất
+            </h3>
+            <span className="text-xs text-slate-500 font-medium">Đơn vị: Triệu VNĐ</span>
+          </div>
+          <div className="flex items-end gap-4 h-48">
+            {monthlyRevenue.map((m, i) => {
+              const heightPercent = (m.value / 50) * 100;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                  <span className="text-xs font-bold text-slate-600">{m.value}M</span>
+                  <div className="w-full relative" style={{ height: '150px' }}>
+                    <div className="absolute bottom-0 w-full rounded-xl bg-slate-100" style={{ height: '100%' }} />
+                    <div className="absolute bottom-0 w-full rounded-xl bg-gradient-to-t from-indigo-600 to-indigo-400 transition-all duration-700 hover:from-indigo-700 hover:to-indigo-500"
+                      style={{ height: `${heightPercent}%` }} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-500">{m.month}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Top Courses */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Star className="w-4 h-4 text-amber-500" /> Khóa học bán chạy
+          </h3>
+          <div className="space-y-3">
+            {topCourses.map((course, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/50 transition-colors cursor-pointer">
+                <span className="text-xl">{course.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-slate-900 truncate">{course.title}</h4>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                    <span>{course.students} học viên</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-0.5"><Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" /> {course.rating}</span>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-600">{course.revenue}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders Table */}
+      <div className="mt-6 bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-bold text-slate-900 flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4 text-indigo-500" /> Giao dịch gần đây
+          </h3>
+          <button className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+            Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="text-left py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Mã đơn</th>
+                <th className="text-left py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Học viên</th>
+                <th className="text-left py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Khóa học</th>
+                <th className="text-right py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Số tiền</th>
+                <th className="text-center py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                <th className="text-right py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Ngày</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentOrders.map((order, i) => (
+                <tr key={i} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                  <td className="py-3 px-2 font-bold text-indigo-600 text-xs">{order.id}</td>
+                  <td className="py-3 px-2 font-medium text-slate-800 text-xs">{order.user}</td>
+                  <td className="py-3 px-2 text-slate-600 text-xs hidden md:table-cell truncate max-w-[200px]">{order.course}</td>
+                  <td className="py-3 px-2 font-bold text-slate-900 text-xs text-right">{order.amount}</td>
+                  <td className="py-3 px-2 text-center">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusColors[order.status]}`}>
+                      {statusLabels[order.status]}
+                    </span>
+                  </td>
+                  <td className="py-3 px-2 text-slate-500 text-xs text-right hidden sm:table-cell">{order.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -106,120 +234,11 @@ export default function AdminDashboard() {
         </div>
 
         <div className="p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {stats.map((stat, i) => {
-              const Icon = stat.icon;
-              return (
-                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg hover:border-indigo-200 transition-all animate-fade-in-up" style={{ animationDelay: `${i * 0.08}s` }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-10 h-10 rounded-xl ${stat.bg} border flex items-center justify-center ${stat.color}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className={`text-xs font-bold flex items-center gap-0.5 ${stat.up ? 'text-emerald-600' : 'text-rose-500'}`}>
-                      {stat.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                      {stat.change}
-                    </span>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900">{stat.value}</div>
-                  <div className="text-xs text-slate-500 font-medium">{stat.label}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Revenue Chart */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-indigo-500" /> Doanh thu 6 tháng gần nhất
-                </h3>
-                <span className="text-xs text-slate-500 font-medium">Đơn vị: Triệu VNĐ</span>
-              </div>
-              <div className="flex items-end gap-4 h-48">
-                {monthlyRevenue.map((m, i) => {
-                  const heightPercent = (m.value / 50) * 100;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                      <span className="text-xs font-bold text-slate-600">{m.value}M</span>
-                      <div className="w-full relative" style={{ height: '150px' }}>
-                        <div className="absolute bottom-0 w-full rounded-xl bg-slate-100" style={{ height: '100%' }} />
-                        <div className="absolute bottom-0 w-full rounded-xl bg-gradient-to-t from-indigo-600 to-indigo-400 transition-all duration-700 hover:from-indigo-700 hover:to-indigo-500"
-                          style={{ height: `${heightPercent}%` }} />
-                      </div>
-                      <span className="text-xs font-bold text-slate-500">{m.month}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Top Courses */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <Star className="w-4 h-4 text-amber-500" /> Khóa học bán chạy
-              </h3>
-              <div className="space-y-3">
-                {topCourses.map((course, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/50 transition-colors cursor-pointer">
-                    <span className="text-xl">{course.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-slate-900 truncate">{course.title}</h4>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                        <span>{course.students} học viên</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-0.5"><Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" /> {course.rating}</span>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-600">{course.revenue}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Orders Table */}
-          <div className="mt-6 bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-indigo-500" /> Giao dịch gần đây
-              </h3>
-              <button className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
-                Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="text-left py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Mã đơn</th>
-                    <th className="text-left py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Học viên</th>
-                    <th className="text-left py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Khóa học</th>
-                    <th className="text-right py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Số tiền</th>
-                    <th className="text-center py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Trạng thái</th>
-                    <th className="text-right py-3 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Ngày</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order, i) => (
-                    <tr key={i} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-2 font-bold text-indigo-600 text-xs">{order.id}</td>
-                      <td className="py-3 px-2 font-medium text-slate-800 text-xs">{order.user}</td>
-                      <td className="py-3 px-2 text-slate-600 text-xs hidden md:table-cell truncate max-w-[200px]">{order.course}</td>
-                      <td className="py-3 px-2 font-bold text-slate-900 text-xs text-right">{order.amount}</td>
-                      <td className="py-3 px-2 text-center">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusColors[order.status]}`}>
-                          {statusLabels[order.status]}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2 text-slate-500 text-xs text-right hidden sm:table-cell">{order.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Routes>
+            <Route index element={<DashboardOverview stats={stats} monthlyRevenue={monthlyRevenue} topCourses={topCourses} recentOrders={recentOrders} statusColors={statusColors} statusLabels={statusLabels} />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="courses" element={<AdminCoursesPage />} />
+          </Routes>
         </div>
       </main>
     </div>

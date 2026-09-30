@@ -73,7 +73,18 @@ function AppContent() {
     );
   }
 
-  // Trang Dashboard/Học tập (Đã đăng nhập)
+  // Trang Admin (Tách biệt hoàn toàn khỏi AppLayout của học viên)
+  if (location.pathname.startsWith('/admin')) {
+    return (
+      <ProtectedRoute allowedRoles={['ADMIN']}>
+        <Routes>
+          <Route path="/admin/*" element={<AdminDashboard />} />
+        </Routes>
+      </ProtectedRoute>
+    );
+  }
+
+  // Trang Dashboard/Học tập (Đã đăng nhập - Học viên & Giảng viên)
   return (
     <AppLayout>
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
@@ -107,16 +118,6 @@ function AppContent() {
         <Route path="/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
         <Route path="/my-vocabulary" element={<ProtectedRoute><MyVocabulary /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-
-        {/* Admin Section */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
 
         {/* Instructor Section */}
         <Route
