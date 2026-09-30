@@ -4,7 +4,7 @@ import {
   Home, BookOpen, Headphones, Repeat, FileText, Mic, 
   ClipboardList, GraduationCap, Gamepad2, Video, Brain, 
   MessageSquare, MessageCircle, Trophy, ChevronDown, LogOut, Crown, FileEdit, LogIn, ShoppingBag, Gift,
-  ChevronsLeft, ChevronsRight, User
+  ChevronsLeft, ChevronsRight, User, Settings
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AppMascot from './AppMascot';
@@ -196,6 +196,26 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
                 </Link>
               );
             })}
+
+            {/* Giao diện Admin (Chỉ hiện nếu là ADMIN) */}
+            {user?.role === 'ADMIN' && (
+              <div className="pt-2">
+                <div className="border-t border-slate-200 dark:border-slate-800 pt-3 mb-1">
+                  {!collapsed && (
+                    <p className="px-3.5 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
+                      QUẢN TRỊ
+                    </p>
+                  )}
+                </div>
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-extrabold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 transition-colors"
+                >
+                  <Settings className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span>Bảng quản trị</span>}
+                </Link>
+              </div>
+            )}
 
             {user ? (
               <button
