@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import RegisterModal from '../components/RegisterModal';
-import { useAuth } from '../context/AuthContext';
+import RegisterModal from '../../components/RegisterModal';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();

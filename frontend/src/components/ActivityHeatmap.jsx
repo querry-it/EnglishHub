@@ -106,16 +106,16 @@ export default function ActivityHeatmap() {
           </div>
 
           {/* Matrix Grid */}
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             {/* Day Labels (T3, T5, T7) */}
-            <div className="flex flex-col justify-between text-[11px] font-bold text-slate-400 py-1 pr-1">
+            <div className="flex flex-col justify-between text-[11px] font-bold text-slate-400 py-0.5 pr-1">
               <span>T3</span>
               <span>T5</span>
               <span>T7</span>
             </div>
 
             {/* 7 rows x 13 columns grid */}
-            <div className="grid grid-flow-col grid-rows-7 gap-1.5 flex-1 overflow-x-auto pb-1">
+            <div className="grid grid-flow-col grid-rows-7 gap-1 flex-1 overflow-x-auto pb-1">
               {days.map((day) => {
                 const isSelected = selectedDay && selectedDay.id === day.id;
 

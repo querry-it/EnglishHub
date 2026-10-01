@@ -4,7 +4,7 @@ import {
   Send, ThumbsUp, MoreHorizontal, FileText, Award, Users,
   Sparkles, ExternalLink, MessageCircle
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Community() {
   const { user } = useAuth();

@@ -3,8 +3,8 @@ import {
   ShoppingBag, Gem, Snowflake, Check, Sparkles, Filter, 
   Package, Crown, Award, ArrowRight, ShieldCheck, CheckCircle2, Diamond
 } from 'lucide-react';
-import AppLayout from '../components/AppLayout';
-import { useAuth } from '../context/AuthContext';
+import AppLayout from '../../components/AppLayout';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Shop() {
   const { user } = useAuth();

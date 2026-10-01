@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import AppLayout from '../../components/AppLayout';
 import AppMascot from '../../components/AppMascot';
 import { useAuth } from '../../context/AuthContext';
 import {

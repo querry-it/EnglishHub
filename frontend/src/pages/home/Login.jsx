@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import LoginModal from '../components/LoginModal';
-import { useAuth } from '../context/AuthContext';
+import LoginModal from '../../components/LoginModal';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();

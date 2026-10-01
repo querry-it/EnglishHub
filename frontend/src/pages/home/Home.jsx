@@ -6,7 +6,7 @@ import {
   TrendingUp, Heart, ChevronDown, MessageCircle, Play, Check, Flame, 
   ArrowUpRight, GraduationCap, ClipboardCheck, Brain, BarChart3
 } from 'lucide-react';
-import AppMascot from '../components/AppMascot';
+import AppMascot from '../../components/AppMascot';
 
 export default function Home() {
   const [activeFaq, setActiveFaq] = useState(0);
@@ -195,7 +195,7 @@ export default function Home() {
             <div className="pt-2">
               <Link
                 to="/listening"
-                className="inline-flex items-center justify-center px-10 py-4.5 rounded-full bg-[#1E2540] hover:bg-blue-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-extrabold text-sm shadow-xl hover:scale-105 transition-all duration-300"
+                className="inline-flex items-center justify-center px-10 py-4.5 my-1 rounded-full bg-[#1E2540] hover:bg-blue-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-extrabold text-base shadow-xl hover:scale-105 transition-all duration-300 min-h-[52px]"
               >
                 <span>Bắt Đầu Miễn Phí</span>
               </Link>

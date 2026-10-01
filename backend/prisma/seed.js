@@ -6,11 +6,12 @@ const prisma = new PrismaClient();
 async function main() {
   console.log(' Bắt đầu seeding dữ liệu bằng bcrypt...');
 
-  // Xóa sạch dữ liệu cũ
+  // Xóa sạch dữ liệu cũ theo đúng thứ tự quan hệ (con trước, cha sau)
   await prisma.refreshToken.deleteMany({});
-  if (prisma.instructorProfile) {
-    await prisma.instructorProfile.deleteMany({});
-  }
+  if (prisma.lesson) await prisma.lesson.deleteMany({});
+  if (prisma.module) await prisma.module.deleteMany({});
+  if (prisma.course) await prisma.course.deleteMany({});
+  if (prisma.instructorProfile) await prisma.instructorProfile.deleteMany({});
   await prisma.user.deleteMany({});
 
   const saltRounds = 10;
@@ -63,6 +64,27 @@ async function main() {
     },
   });
   console.log(' Đã tạo Giảng viên mới (Chưa duyệt - Cần làm bước 2): teacher.new@englishhub.edu.vn / InstructorNew!');
+
+  // Tài khoản GIẢNG VIÊN cá nhân - Dev account (Đã duyệt)
+  const myInstructorPasswordHash = await bcrypt.hash('instructor@123', saltRounds);
+  await prisma.user.create({
+    data: {
+      email: 'instructor@englishhub.edu.vn',
+      fullName: 'Khánh An',
+      passwordHash: myInstructorPasswordHash,
+      role: 'INSTRUCTOR',
+      isActive: true,
+      isApproved: true,
+      instructorProfile: {
+        create: {
+          bio: 'Giảng viên luyện thi IELTS & TOEIC, chuyên gia phát âm.',
+          certificates: 'IELTS 7.5, TOEIC 990',
+          cvUrl: ''
+        }
+      }
+    },
+  });
+  console.log(' Đã tạo Giảng viên (Dev): instructor.huy@englishhub.edu.vn / Huynguyen@123');
 
   // Khởi tạo tài khoản HỌC VIÊN mẫu
   const studentPasswordHash = await bcrypt.hash('Student123!', saltRounds);

@@ -4,8 +4,7 @@ import {
   MessageSquare, Star, ArrowLeft, Heart,
   MessageCircle
 } from 'lucide-react';
-import AppLayout from '../components/AppLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Feedbacks() {
   const navigate = useNavigate();
@@ -232,8 +231,7 @@ export default function Feedbacks() {
   };
 
   return (
-    <AppLayout>
-      <div className="w-full min-h-screen pb-16 select-none">
+    <div className="w-full min-h-screen pb-16 select-none">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 space-y-6">
           
           {/* ================= 1. TOP NAVIGATION & TITLE ================= */}
@@ -367,11 +365,8 @@ export default function Feedbacks() {
             </div>
           )}
 
-        </div>
-      </div>
-
-      {/* WRITE FEEDBACK MODAL */}
-      {showModal && (
+          {/* WRITE FEEDBACK MODAL */}
+          {showModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -448,6 +443,7 @@ export default function Feedbacks() {
           </div>
         </div>
       )}
-    </AppLayout>
+    </div>
+  </div>
   );
 }

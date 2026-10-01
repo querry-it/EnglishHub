@@ -5,7 +5,7 @@ import {
   Search, Users, Video, Filter, ChevronDown, ArrowLeft,
   GraduationCap, Clock, CheckCircle2
 } from 'lucide-react';
-import StudyModeModal from '../components/StudyModeModal';
+import StudyModeModal from '../../components/StudyModeModal';
 
 export default function Courses() {
   const navigate = useNavigate();

@@ -42,22 +42,22 @@ enum SubmissionStatus {
 }
 
 model User {
-  id                 String               @id @default(uuid()) @db.Uuid
-  email              String               @unique @db.VarChar(255)
-  passwordHash       String               @map("password_hash") @db.VarChar(255)
-  fullName           String               @map("full_name") @db.VarChar(100)
-  avatarUrl          String?              @map("avatar_url") @db.VarChar(500)
-  role               Role
-  isActive           Boolean              @default(true) @map("is_active")
-  isApproved         Boolean              @default(true) @map("is_approved")
-  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz
-  
-  instructorProfile  InstructorProfile?
-  courses            Course[]
-  enrollments        Enrollment[]
-  submissions        Submission[]
-  feedbacksGiven     SubmissionFeedback[] @relation("InstructorFeedbacks")
-  flashcardReviews   FlashcardReview[]
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  fullName     String   @map("full_name") @db.VarChar(100)
+  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
+  role         Role
+  isActive     Boolean  @default(true) @map("is_active")
+  isApproved   Boolean  @default(true) @map("is_approved")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  instructorProfile InstructorProfile?
+  courses           Course[]
+  enrollments       Enrollment[]
+  submissions       Submission[]
+  feedbacksGiven    SubmissionFeedback[] @relation("InstructorFeedbacks")
+  flashcardReviews  FlashcardReview[]
 
   refreshTokens RefreshToken[]
 
@@ -75,7 +75,6 @@ model InstructorProfile {
 
   @@map("instructor_profiles")
 }
-
 
 model RefreshToken {
   id        String   @id @default(uuid()) @db.Uuid
@@ -144,17 +143,17 @@ model Enrollment {
 }
 
 model Submission {
-  id             String             @id @default(uuid()) @db.Uuid
-  userId         String             @map("user_id") @db.Uuid
-  lessonId       String             @map("lesson_id") @db.Uuid
-  submissionType SubmissionType     @map("submission_type")
-  contentText    String?            @map("content_text")
-  audioUrl       String?            @map("audio_url") @db.VarChar(500)
-  score          Decimal?           @db.Decimal(4, 1)
-  status         SubmissionStatus   @default(PENDING)
-  submittedAt    DateTime           @default(now()) @map("submitted_at") @db.Timestamptz
-  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson         Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id             String               @id @default(uuid()) @db.Uuid
+  userId         String               @map("user_id") @db.Uuid
+  lessonId       String               @map("lesson_id") @db.Uuid
+  submissionType SubmissionType       @map("submission_type")
+  contentText    String?              @map("content_text")
+  audioUrl       String?              @map("audio_url") @db.VarChar(500)
+  score          Decimal?             @db.Decimal(4, 1)
+  status         SubmissionStatus     @default(PENDING)
+  submittedAt    DateTime             @default(now()) @map("submitted_at") @db.Timestamptz
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson         Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   feedbacks      SubmissionFeedback[]
 
   @@map("submissions")
@@ -182,7 +181,7 @@ model FlashcardReview {
   meaning         String
   intervalDays    Int      @default(1) @map("interval_days")
   repetitionCount Int      @default(0) @map("repetition_count")
-  easeFactor      Decimal  @default(2.50) @db.Decimal(4, 2) @map("ease_factor")
+  easeFactor      Decimal  @default(2.50) @map("ease_factor") @db.Decimal(4, 2)
   nextReviewAt    DateTime @default(now()) @map("next_review_at") @db.Date
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

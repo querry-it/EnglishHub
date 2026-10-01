@@ -4,7 +4,6 @@ import {
   FileEdit, Trash2, Edit3, Sparkles, Crown, Search, 
   BookOpen, CheckCircle2, Volume2, Plus, Check, X
 } from 'lucide-react';
-import AppLayout from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 
 export default function MyNotes() {
@@ -73,8 +72,7 @@ export default function MyNotes() {
   );
 
   return (
-    <AppLayout>
-      <div className="w-full min-h-screen pb-16 select-none">
+    <div className="w-full min-h-screen pb-16 select-none">
         <div className="max-w-4xl mx-auto px-2 sm:px-4 space-y-6">
           
           {/* ================= 1. HEADER WITH MASCOT ================= */}
@@ -225,6 +223,5 @@ export default function MyNotes() {
 
         </div>
       </div>
-    </AppLayout>
   );
 }

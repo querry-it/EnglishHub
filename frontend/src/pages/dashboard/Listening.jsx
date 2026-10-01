@@ -5,9 +5,9 @@ import {
   Video, ChevronRight, Eye, Clock, Check, Users, ArrowRight,
   MessageSquare, Film, Tv, ExternalLink, User, Zap
 } from 'lucide-react';
-import DictationStudio from '../components/DictationStudio';
-import ShadowingStudio from '../components/ShadowingStudio';
-import ErrorBoundary from '../components/ErrorBoundary';
+import DictationStudio from '../../components/DictationStudio';
+import ShadowingStudio from '../../components/ShadowingStudio';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 export default function Listening() {
   const navigate = useNavigate();
@@ -329,6 +329,7 @@ export default function Listening() {
               <div className="flex items-center gap-2 flex-wrap">
                 {categoryTags.map((tag, idx) => {
                   const isActive = selectedTag === tag.label;
+                  const TagIcon = tag.icon;
                   return (
                     <button
                       key={idx}
@@ -339,7 +340,7 @@ export default function Listening() {
                           : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
                       }`}
                     >
-                      {tag.icon && <span>{tag.icon}</span>}
+                      {TagIcon && <TagIcon className="w-3.5 h-3.5" />}
                       <span>{tag.label}</span>
                     </button>
                   );

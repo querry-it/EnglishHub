@@ -6,44 +6,57 @@ import AppHeader from './components/AppHeader';
 import Footer from './components/Footer';
 import AppLayout from './components/AppLayout';
 
-import Home from './pages/Home';
-import Listening from './pages/Listening';
-import Pronunciation from './pages/Pronunciation';
-import Vocabulary from './pages/Vocabulary';
-import Speaking from './pages/Speaking';
-import Exams from './pages/Exams';
-import Games from './pages/Games';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import Home from './pages/home/Home';
+import Login from './pages/home/Login';
+import Register from './pages/home/Register';
 
-import Courses from './pages/Courses';
-import Community from './pages/Community';
-import Chat from './pages/Chat';
-import Feedbacks from './pages/Feedbacks';
-import Shop from './pages/Shop';
-import Pricing from './pages/Pricing';
+import Dashboard from './pages/dashboard/Dashboard';
+import Listening from './pages/dashboard/Listening';
+import Pronunciation from './pages/dashboard/Pronunciation';
+import Vocabulary from './pages/dashboard/Vocabulary';
+import Speaking from './pages/dashboard/Speaking';
+import Exams from './pages/dashboard/Exams';
+import Games from './pages/dashboard/Games';
+import Courses from './pages/dashboard/Courses';
+import Community from './pages/dashboard/Community';
+import Chat from './pages/dashboard/Chat';
+import Feedbacks from './pages/dashboard/Feedbacks';
+import Shop from './pages/dashboard/Shop';
+import Pricing from './pages/dashboard/Pricing';
+import Ranking from './pages/dashboard/Ranking';
+import Cart from './pages/dashboard/Cart';
+import LearningWorkspace from './pages/dashboard/LearningWorkspace';
+import MyNotes from './pages/dashboard/MyNotes';
+import MyVocabulary from './pages/dashboard/MyVocabulary';
+import Profile from './pages/dashboard/Profile';
 
-// User Pages
-import Dashboard from './pages/user/Dashboard';
-import Leaderboard from './pages/user/Leaderboard';
-import Cart from './pages/user/Cart';
-import LearningWorkspace from './pages/user/LearningWorkspace';
-import MyNotes from './pages/user/MyNotes';
-import MyVocabulary from './pages/user/MyVocabulary';
-import Profile from './pages/user/Profile';
-
-// Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AuditLogsPage from './pages/admin/AuditLogsPage';
+import InstructorDashboard from './pages/instructor/InstructorDashboard';
+import InstructorCourses from './pages/instructor/InstructorCourses';
+import CreateLesson from './pages/instructor/CreateLesson';
+import InstructorGrading from './pages/instructor/InstructorGrading';
+import InstructorStudents from './pages/instructor/InstructorStudents';
+import InstructorProfile from './pages/instructor/InstructorProfile';
 
 import { useAuth } from './context/AuthContext';
 import LoginModal from './components/LoginModal';
 import ProtectedRoute from './components/ProtectedRoute';
 
+function ProfileWrapper() {
+  const { user } = useAuth();
+  if (user?.role === 'INSTRUCTOR' || user?.role === 'ADMIN') {
+    return <InstructorProfile />;
+  }
+  return <Profile />;
+}
+
 function AppContent() {
   const location = useLocation();
-  const { isLoginModalOpen, closeLoginModal, loading, user } = useAuth();
+  const { isLoginModalOpen, closeLoginModal, loading } = useAuth();
 
-  const isPublicPage = ['/home', '/welcome', '/login', '/register'].includes(location.pathname);
+  const isPublicPage = ['/', '/home', '/welcome', '/login', '/register'].includes(location.pathname);
 
   if (loading) {
     return (
@@ -53,19 +66,20 @@ function AppContent() {
     );
   }
 
-  // Trang Public (home, Login, Register)
+  // Trang public — dùng header/footer riêng, không có sidebar
   if (isPublicPage) {
     return (
       <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
         <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
-        <AppHeader />
+        <AppHeader isPublic={true} />
         <main className="flex-1">
           <Routes>
-            <Route path="/home" element={<Home />} />
-            <Route path="/welcome" element={<Home />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/welcome" element={<Navigate to="/" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="*" element={<Navigate to="/home" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
         <Footer />
@@ -73,61 +87,57 @@ function AppContent() {
     );
   }
 
-  // Trang Admin (Tách biệt hoàn toàn khỏi AppLayout của học viên)
-  if (location.pathname.startsWith('/admin')) {
-    return (
-      <ProtectedRoute allowedRoles={['ADMIN']}>
-        <Routes>
-          <Route path="/admin/*" element={<AdminDashboard />} />
-        </Routes>
-      </ProtectedRoute>
-    );
-  }
+  // Tất cả trang còn lại (dashboard + instructor + admin) — dùng chung AppLayout
 
-  // Trang Dashboard/Học tập (Đã đăng nhập - Học viên & Giảng viên)
   return (
     <AppLayout>
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       <Routes>
         {/* Core App Routes */}
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* Learning Features */}
-        <Route path="/listening" element={<ProtectedRoute><Listening /></ProtectedRoute>} />
-        <Route path="/dictation" element={<ProtectedRoute><Listening /></ProtectedRoute>} />
-        <Route path="/pronunciation" element={<ProtectedRoute><Pronunciation /></ProtectedRoute>} />
-        <Route path="/vocabulary" element={<ProtectedRoute><Vocabulary /></ProtectedRoute>} />
-        <Route path="/speaking" element={<ProtectedRoute><Speaking /></ProtectedRoute>} />
-        <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
-        <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-        <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+        {/* Learning Features (Mọi người dùng đều có thể truy cập để học) */}
+        <Route path="/listening" element={<Listening />} />
+        <Route path="/dictation" element={<Listening />} />
+        <Route path="/pronunciation" element={<Pronunciation />} />
+        <Route path="/vocabulary" element={<Vocabulary />} />
+        <Route path="/speaking" element={<Speaking />} />
+        <Route path="/exams" element={<Exams />} />
+        <Route path="/games" element={<Games />} />
+        <Route path="/courses" element={<Courses />} />
 
         {/* Community & Tools */}
-        <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-        <Route path="/feedbacks" element={<ProtectedRoute><Feedbacks /></ProtectedRoute>} />
-        <Route path="/shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
-        <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/feedbacks" element={<Feedbacks />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/leaderboard" element={<Ranking />} />
 
-        {/* User Account */}
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        {/* User Account (Cần đăng nhập) */}
+        <Route path="/profile" element={<ProtectedRoute><ProfileWrapper /></ProtectedRoute>} />
         <Route path="/workspace" element={<ProtectedRoute><LearningWorkspace /></ProtectedRoute>} />
         <Route path="/review" element={<ProtectedRoute><LearningWorkspace /></ProtectedRoute>} />
-        <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
         <Route path="/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
         <Route path="/my-vocabulary" element={<ProtectedRoute><MyVocabulary /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
 
         {/* Instructor Section */}
-        <Route
-          path="/instructor/*"
-          element={
-            <ProtectedRoute allowedRoles={['INSTRUCTOR', 'ADMIN']}>
-              <div className="p-8 text-slate-800 dark:text-white font-bold">Trang quản lý giảng viên (Đang phát triển)</div>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/instructor" element={<ProtectedRoute allowedRoles={['INSTRUCTOR','ADMIN']}><InstructorDashboard /></ProtectedRoute>} />
+        <Route path="/instructor/courses" element={<ProtectedRoute allowedRoles={['INSTRUCTOR','ADMIN']}><InstructorCourses /></ProtectedRoute>} />
+        <Route path="/instructor/create-lesson" element={<ProtectedRoute allowedRoles={['INSTRUCTOR','ADMIN']}><CreateLesson /></ProtectedRoute>} />
+        <Route path="/instructor/grading" element={<ProtectedRoute allowedRoles={['INSTRUCTOR','ADMIN']}><InstructorGrading /></ProtectedRoute>} />
+        <Route path="/instructor/students" element={<ProtectedRoute allowedRoles={['INSTRUCTOR','ADMIN']}><InstructorStudents /></ProtectedRoute>} />
+        <Route path="/instructor/profile" element={<ProtectedRoute allowedRoles={['INSTRUCTOR','ADMIN']}><InstructorProfile /></ProtectedRoute>} />
+
+        {/* Admin Section (Quyền ADMIN) */}
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminUsersPage /></ProtectedRoute>} />
+        <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/blog" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/logs" element={<ProtectedRoute allowedRoles={['ADMIN']}><AuditLogsPage /></ProtectedRoute>} />
+        <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

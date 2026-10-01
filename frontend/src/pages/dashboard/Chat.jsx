@@ -3,7 +3,7 @@ import {
   MessageSquare, MessageCircle, Users, RefreshCw, Smile, 
   Send, Search, ShieldOff, Sparkles, Flame, CheckCircle2, UserPlus, ChevronRight, Lightbulb
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Chat() {
   const { user } = useAuth();

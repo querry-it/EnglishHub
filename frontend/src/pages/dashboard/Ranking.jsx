@@ -3,10 +3,10 @@ import {
   Trophy, Flame, Zap, Medal, Crown, ChevronLeft, ChevronRight, 
   Clock, Award, Sparkles, CheckCircle2, MessageSquare, Star
 } from 'lucide-react';
-import AppLayout from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
+import PageLayout from '../../components/PageLayout';
 
-export default function Leaderboard() {
+export default function Ranking() {
   const { user } = useAuth();
   
   // Month selector state
@@ -78,19 +78,12 @@ export default function Leaderboard() {
   };
 
   return (
-    <AppLayout>
-      <div className="w-full min-h-screen pb-16 select-none">
-        <div className="max-w-4xl mx-auto px-2 sm:px-4 space-y-6">
-          
-          {/* ================= 1. PAGE HEADER TITLE ================= */}
-          <div className="text-center space-y-1 py-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Bảng xếp hạng
-            </h1>
-            <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
-              Xem những người học năng động nhất trong tháng
-            </p>
-          </div>
+    <PageLayout
+      title="Bảng xếp hạng"
+      subtitle="Xem những người học năng động nhất trong tháng"
+      badge={{ label: 'Tháng này', color: 'indigo' }}
+    >
+      <div className="max-w-4xl mx-auto space-y-6 select-none">
 
           {/* ================= 2. COUNTDOWN & MONTHLY REWARDS CONTAINER ================= */}
           <div className="p-6 sm:p-7 rounded-3xl bg-purple-50/70 dark:bg-purple-950/30 border-2 border-purple-200 dark:border-purple-800/60 shadow-xs space-y-6 text-center">
@@ -316,7 +309,6 @@ export default function Leaderboard() {
           </div>
 
         </div>
-      </div>
-    </AppLayout>
+    </PageLayout>
   );
 }

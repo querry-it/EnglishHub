@@ -139,7 +139,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 w-full pb-12">
-        {/* Top Row: Welcome Back Title & Baolingo Ad */}
+        {/* Top Row: Welcome Back Title */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -148,25 +148,6 @@ export default function Dashboard() {
             <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">
               Giữ vững chuỗi học và nhận phần thưởng
             </p>
-          </div>
-
-          {/* Ad Banner */}
-          <div className="bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-100 dark:from-amber-950 dark:to-yellow-900 p-4 rounded-3xl border-2 border-amber-300 dark:border-amber-700 flex items-center gap-4 shadow-sm max-w-md">
-            <div className="w-12 h-12 rounded-xl bg-amber-400/30 flex items-center justify-center text-2xl shrink-0">
-              🐼
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-slate-900 dark:text-white text-sm">Baolingo 🇨🇳</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-400 text-amber-900">QUẢNG CÁO</span>
-              </div>
-              <p className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                Học tiếng Trung dễ như chơi — từ vựng, HSK & giao tiếp.
-              </p>
-            </div>
-            <button className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs shrink-0 hover:bg-slate-800 transition-colors">
-              Khám phá →
-            </button>
           </div>
         </div>
 
@@ -288,7 +269,7 @@ export default function Dashboard() {
                     <img
                       src={lesson.thumbnail}
                       alt={lesson.title}
-                      className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500 opacity-90"
+                      className="w-full h-full object-cover agroup-hover/card:scale-105 transition-transform duration-500 opacity-90"
                     />
 
                     {/* Top Badges */}

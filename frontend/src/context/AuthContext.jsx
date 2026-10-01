@@ -22,25 +22,34 @@ export function AuthProvider({ children }) {
     const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
     const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        // Dữ liệu hỏng → xóa đi
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+      }
     }
+    // Nếu không có token → user = null (chưa đăng nhập)
     setLoading(false);
   }, []);
 
-  const handleAuthSuccess = (userData, token, rememberMe) => {
+  const handleAuthSuccess = (userData, token, rememberMe = true) => {
     setUser(userData);
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem('user', JSON.stringify(userData));
     storage.setItem('accessToken', token);
   };
 
-  const login = async (email, password, rememberMe = false) => {
+  // Đăng nhập bằng API backend thật
+  const login = async (email, password, rememberMe = true) => {
     try {
       const response = await api.post('/auth/login', { email, password });
       if (response.data.success) {
         handleAuthSuccess(response.data.user, response.data.accessToken, rememberMe);
-        return { success: true };
+        return { success: true, user: response.data.user };
       }
+      return { success: false, message: 'Đăng nhập thất bại.' };
     } catch (error) {
       console.error('Login error:', error);
       return {
@@ -50,15 +59,14 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Đăng ký
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData);
       if (response.data.success) {
-        // Sau khi đăng ký thành công, có thể tự động đăng nhập hoặc yêu cầu user đăng nhập lại
-        // Ở đây backend trả về user, ta có thể gọi login luôn nếu backend trả về token
-        // Tuy nhiên authController.js register chỉ trả về user.
         return { success: true, message: response.data.message };
       }
+      return { success: false, message: 'Đăng ký thất bại.' };
     } catch (error) {
       console.error('Register error:', error);
       return {
@@ -68,6 +76,7 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Đăng xuất
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -79,21 +88,8 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('accessToken');
       sessionStorage.removeItem('user');
       sessionStorage.removeItem('accessToken');
-      window.location.href = '/home';
+      window.location.href = '/';
     }
-  };
-
-  // Các hàm Mock để test giao diện (Đã cập nhật Role theo chuẩn Backend)
-  const loginAsAdmin = () => {
-    const admin = { id: 99, fullName: 'Admin', role: 'ADMIN', isApproved: true };
-    login(admin, 'mock-admin-token');
-    return admin;
-  };
-
-  const loginAsTeacher = () => {
-    const teacher = { id: 50, fullName: 'Instructor Alex', role: 'INSTRUCTOR', isApproved: true };
-    login(teacher, 'mock-teacher-token');
-    return teacher;
   };
 
   const updateProfile = (updates) => {
@@ -108,7 +104,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, loading, isAuthenticated: !!user,
       isLoginModalOpen, openLoginModal, closeLoginModal,
-      login, register, logout, loginAsAdmin, loginAsTeacher, updateProfile
+      login, register, logout, updateProfile
     }}>
       {children}
     </AuthContext.Provider>

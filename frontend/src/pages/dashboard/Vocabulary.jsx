@@ -5,7 +5,7 @@ import {
   Clock, RotateCcw, Volume2, RotateCw, Eye, ArrowRight, ChevronRight, 
   Globe, Folder, Users, Star, Flame, X, Check
 } from 'lucide-react';
-import AppMascot from '../components/AppMascot';
+import AppMascot from '../../components/AppMascot';
 
 export default function Vocabulary() {
   const [activeDeck, setActiveDeck] = useState(null); // null = catalog, object = active flashcard study

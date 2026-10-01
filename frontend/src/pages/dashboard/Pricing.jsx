@@ -3,7 +3,7 @@ import {
   Crown, Star, CheckCircle2, Clock, Sparkles, Key, Zap, 
   Flame, ShieldCheck, ArrowRight, Check, Users, BookOpen
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Pricing() {
   const { openLoginModal } = useAuth();
