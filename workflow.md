@@ -20,7 +20,7 @@
 *   **Xử lý nghiệp vụ đặc thù dự kiến (Thuật toán trọng tâm):**  
     *   *Thuật toán Spaced Repetition (SuperMemo SM-2):* Tự động tính toán chu kỳ ôn tập từ vựng dựa trên phản hồi mức độ nhớ của người học.
     *   *Cơ chế khóa bài có điều kiện (Conditional Progression Locking):* Kiểm soát điều kiện tiên quyết ở tầng nghiệp vụ; bài học kế tiếp chỉ mở khóa khi học viên hoàn thành thời lượng video và đạt $\ge 80\%$ điểm bài kiểm tra.
-*   **Các thực thể dữ liệu chính (Tối thiểu 06 thực thể):** Gồm 08 thực thể có quan hệ thực chất: `users`, `courses`, `modules`, `lessons`, `enrollments`, `submissions`, `submission_feedbacks`, `flashcard_reviews`.
+*   **Các thực thể dữ liệu chính (Tối thiểu 06 thực thể):** Gồm 11 thực thể có quan hệ thực chất: `users`, `instructor_profiles`, `refresh_tokens`, `courses`, `modules`, `lessons`, `enrollments`, `submissions`, `submission_feedbacks`, `flashcard_reviews`, `user_progress`.
 *   **Nhánh công nghệ & Ngăn xếp dự kiến:**  
     *   Backend: Node.js (Express/NestJS) thiết kế theo kiến trúc 3 tầng chuẩn.
     *   Cơ sở dữ liệu: PostgreSQL (Supabase / Neon).
@@ -41,8 +41,8 @@
 | :--- | :--- | :--- |
 | **K1** | Quản lý người dùng & Xác thực | Đăng ký, đăng nhập JWT kép (Access Token ngắn hạn + Refresh Token HttpOnly Cookie), đổi mật khẩu, khóa tài khoản. Mật khẩu băm bằng Argon2/bcrypt. |
 | **K2** | Phân quyền theo vai trò (RBAC) | 03 vai trò khác biệt: Student, Instructor, Admin. Kiểm soát quyền phía server qua Middleware/Guards, chặn IDOR. |
-| **K3** | Nghiệp vụ cốt lõi của đề tài | 1. Luồng học video $\rightarrow$ làm Quiz $\rightarrow$ tự động mở bài kế tiếp.<br>2. Luồng nộp Speaking/Writing $\rightarrow$ Chấm điểm theo Rubric $\rightarrow$ Trả kết quả.<br>3. Luồng ôn từ vựng ngắt quãng (SM-2 Flashcard). |
-| **K4** | Quản trị dữ liệu danh mục | Đầy đủ thao tác CRUD trên 08 thực thể với xác thực DTO và ràng buộc khóa ngoại (Foreign Keys). |
+| **K3** | Nghiệp vụ cốt lõi của đề tài | 1. Luồng học video $\rightarrow$ làm Quiz $\rightarrow$ tự động mở bài kế tiếp.<br>2. Luồng nộp Speaking/Writing $\rightarrow$ Chấm điểm theo Rubric $\rightarrow$ Trả kết quả.<br>3. Luồng luyện nghe Dictation tích hợp Exp/Level và chống tranh chấp dữ liệu (Race Condition). |
+| **K4** | Quản trị dữ liệu danh mục | Đầy đủ thao tác CRUD trên 11 thực thể với xác thực DTO và ràng buộc khóa ngoại (Foreign Keys). |
 | **K5** | Tìm kiếm, lọc và phân trang | Tìm kiếm khóa học, lọc theo trình độ (A1–IELTS), kỹ năng; phân trang server-side (`limit`/`offset`). |
 | **K6** | Tải và quản lý tệp an toàn | Tải tệp ghi âm Speaking, kiểm tra magic bytes (`audio/webm`, `audio/mpeg`), giới hạn $\le 10$MB, đổi tên file hash ngẫu nhiên. |
 | **K7** | Báo cáo và thống kê | Báo cáo tiến độ học tập, phổ điểm các kỹ năng Speaking/Writing, doanh thu theo thời gian; hỗ trợ xuất tệp ra CSV/Excel. |
@@ -55,7 +55,7 @@
 | CĐR | Nội dung chuẩn đầu ra | Bằng chứng bắt buộc trong sản phẩm |
 | :--- | :--- | :--- |
 | **1.1** | Thực hiện lập trình phía máy chủ cho ứng dụng web[cite: 1]. | Mã nguồn tầng Service, Repository; xử lý JWT kép; truy vấn tham số hóa chống SQLi; băm mật khẩu Argon2[cite: 1]. Trình bày tại Chương 1 và 4[cite: 1]. |
-| **4.1** | Thiết kế cấu trúc và chức năng cho website động[cite: 1]. | Đặc tả 33 YCCN, YCPCN đo được; sơ đồ phân tầng 3 tầng; biểu đồ Use Case; biểu đồ ERD chuẩn 3NF gồm 8 thực thể[cite: 1]. Trình bày tại Chương 2 và 3[cite: 1]. |
+| **4.1** | Thiết kế cấu trúc và chức năng cho website động[cite: 1]. | Đặc tả 33 YCCN, YCPCN đo được; sơ đồ phân tầng 3 tầng; biểu đồ Use Case; biểu đồ ERD chuẩn 3NF gồm 11 thực thể[cite: 1]. Trình bày tại Chương 2 và 3[cite: 1]. |
 | **4.2** | Xây dựng và đề xuất cấu trúc, chức năng phù hợp[cite: 1]. | Luận giải lựa chọn kiến trúc và ngăn xếp công nghệ; mã giả thuật toán SM-2; ma trận 12 rủi ro bảo mật OWASP Top 10; bảng đo hiệu năng trước/sau[cite: 1]. Trình bày tại Chương 1, 3 và 5[cite: 1]. |
 | **4.3** | Xây dựng website động dựa trên backend hiện đại[cite: 1]. | Website chạy trực tuyến trên Render/Vercel qua HTTPS[cite: 1]; backend Node.js 3 tầng[cite: 1]; tài liệu Swagger UI OpenAPI v3[cite: 1]; bộ 25+ ca kiểm thử[cite: 1]. Trình bày tại Chương 4, 5 và 6[cite: 1]. |
 
@@ -120,6 +120,7 @@
 | 31 | **YCCN-31** | Báo cáo Tiến độ & Phổ điểm | Biểu đồ trực quan tỷ lệ hoàn thành khóa học và phổ điểm bài thi[cite: 1]. | Instructor, Admin | Bắt buộc[cite: 1] | CĐR 4.1[cite: 1] |
 | 32 | **YCCN-32** | Báo cáo Doanh thu & Xuất file | Thống kê số lượng ghi danh theo thời gian, trích xuất báo cáo ra CSV/Excel[cite: 1]. | Admin | Bắt buộc[cite: 1] | CĐR 1.1[cite: 1] |
 | 33 | **YCCN-33** | Tra cứu Nhật ký hệ thống (`/admin/audit-logs`) | Xem nhật ký các hành vi: đăng nhập sai, khóa tài khoản, sửa điểm[cite: 1]. | Admin | Bắt buộc[cite: 1] | CĐR 1.1[cite: 1] |
+| 34 | **YCCN-34** | Luyện nghe Dictation & Hệ thống Exp | Hệ thống nghe chép chính tả, tính điểm tự động, cộng Exp (Atomic Update) và thăng cấp Level. | Student | Bắt buộc | CĐR 1.1 |
 
 ---
 
@@ -155,12 +156,35 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
+    avatar_url VARCHAR(500),
     role VARCHAR(20) NOT NULL CHECK (role IN ('STUDENT', 'INSTRUCTOR', 'ADMIN')),
     is_active BOOLEAN DEFAULT TRUE,
+    is_approved BOOLEAN DEFAULT TRUE,
+    total_exp INT DEFAULT 0,
+    level INT DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Bảng Khóa học
+-- 2. Bảng Hồ sơ Giảng viên (Instructor Profiles)
+CREATE TABLE instructor_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    bio TEXT,
+    certificates TEXT,
+    cv_url VARCHAR(500),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Bảng Refresh Tokens (Xác thực JWT kép)
+CREATE TABLE refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token VARCHAR(500) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Bảng Khóa học
 CREATE TABLE courses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     instructor_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -171,7 +195,7 @@ CREATE TABLE courses (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Bảng Chương học (Modules)
+-- 5. Bảng Chương học (Modules)
 CREATE TABLE modules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -180,7 +204,7 @@ CREATE TABLE modules (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Bảng Bài học (Lessons)
+-- 6. Bảng Bài học (Lessons)
 CREATE TABLE lessons (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     module_id UUID NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
@@ -192,7 +216,7 @@ CREATE TABLE lessons (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. Bảng Ghi danh & Tiến độ (Enrollments)
+-- 7. Bảng Ghi danh & Tiến độ (Enrollments)
 CREATE TABLE enrollments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -202,7 +226,7 @@ CREATE TABLE enrollments (
     CONSTRAINT unique_user_course UNIQUE (user_id, course_id)
 );
 
--- 6. Bảng Bài nộp thực hành Speaking / Writing (Submissions)
+-- 8. Bảng Bài nộp thực hành Speaking / Writing (Submissions)
 CREATE TABLE submissions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -215,7 +239,7 @@ CREATE TABLE submissions (
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. Bảng Nhận xét & Chấm điểm chi tiết (Submission Feedbacks)
+-- 9. Bảng Nhận xét & Chấm điểm chi tiết (Submission Feedbacks)
 CREATE TABLE submission_feedbacks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
@@ -226,7 +250,7 @@ CREATE TABLE submission_feedbacks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8. Bảng Thẻ nhớ Từ vựng (Flashcard Reviews - Spaced Repetition)
+-- 10. Bảng Thẻ nhớ Từ vựng (Flashcard Reviews - Spaced Repetition)
 CREATE TABLE flashcard_reviews (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -239,8 +263,20 @@ CREATE TABLE flashcard_reviews (
     next_review_at DATE DEFAULT CURRENT_DATE
 );
 
+-- 11. Bảng Tiến độ chi tiết bài học (User Progress)
+CREATE TABLE user_progress (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+    score INT DEFAULT 0,
+    completed BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_lesson UNIQUE (user_id, lesson_id)
+);
+
 -- Chỉ mục tối ưu hóa hiệu năng truy vấn nóng
 CREATE INDEX idx_courses_slug ON courses(slug);
 CREATE INDEX idx_lessons_module ON lessons(module_id, order_index);
 CREATE INDEX idx_submissions_user_lesson ON submissions(user_id, lesson_id);
 CREATE INDEX idx_flashcard_reviews_due ON flashcard_reviews(user_id, next_review_at);
+CREATE INDEX idx_refresh_tokens_value ON refresh_tokens(token);

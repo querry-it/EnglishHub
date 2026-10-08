@@ -50,12 +50,15 @@ model User {
   role         Role
   isActive     Boolean  @default(true) @map("is_active")
   isApproved   Boolean  @default(true) @map("is_approved")
+  totalExp     Int      @default(0) @map("total_exp")
+  level        Int      @default(1) @map("level")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   instructorProfile InstructorProfile?
   courses           Course[]
   enrollments       Enrollment[]
   submissions       Submission[]
+  progress          UserProgress[]
   feedbacksGiven    SubmissionFeedback[] @relation("InstructorFeedbacks")
   flashcardReviews  FlashcardReview[]
 
@@ -125,7 +128,9 @@ model Lesson {
   createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
   module      Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   submissions Submission[]
+  progress    UserProgress[]
 
+  @@index([moduleId, orderIndex])
   @@map("lessons")
 }
 
@@ -156,6 +161,7 @@ model Submission {
   lesson         Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   feedbacks      SubmissionFeedback[]
 
+  @@index([userId, lessonId])
   @@map("submissions")
 }
 
@@ -185,5 +191,21 @@ model FlashcardReview {
   nextReviewAt    DateTime @default(now()) @map("next_review_at") @db.Date
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, nextReviewAt])
   @@map("flashcard_reviews")
+}
+
+model UserProgress {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  lessonId  String   @map("lesson_id") @db.Uuid
+  score     Int      @default(0)
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("user_progress")
 }
