@@ -346,6 +346,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
           </button>
         )}
 
+
         {/* ── COLLAPSE TOGGLE ──────────────────────────────────── */}
         <div className="pt-1 border-t border-slate-200 dark:border-slate-800 flex justify-center">
           <button

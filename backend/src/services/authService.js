@@ -42,7 +42,9 @@ export const registerUser = async ({ email, password, fullName, role }) => {
     id: newUser.id,
     email: newUser.email,
     fullName: newUser.fullName,
-    role: newUser.role
+    role: newUser.role,
+    totalExp: newUser.totalExp,
+    level: newUser.level
   };
 };
 
@@ -100,7 +102,9 @@ export const loginUser = async ({ email, password }) => {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: user.role
+      role: user.role,
+      totalExp: user.totalExp,
+      level: user.level
     }
   };
 };
