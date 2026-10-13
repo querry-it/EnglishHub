@@ -112,31 +112,28 @@ export default function Games() {
   ];
 
   const recentActivities = [
-    { user: 'avaia', level: 7, game: 'Mưa Từ Vựng', score: '1,350', time: '6 giây trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
-    { user: 'Maris', level: 3, game: 'Ong Chính Tả', score: '1,890', time: '18 giây trước', icon: '🔊', bg: 'bg-amber-100 text-amber-600' },
-    { user: 'Duy Cáp Văn Mạnh', level: 1, game: 'Mưa Từ Vựng', score: '0', time: '32 giây trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
-    { user: 'Tâm Đặng Thanh', level: 7, game: 'Ném Hoa Quả', score: '104', time: '47 giây trước', icon: '🍎', bg: 'bg-lime-100 text-lime-600' },
-    { user: 'Người chơi ẩn danh', level: 1, game: 'Bắn Bong Bóng', score: '34', time: '1 phút trước', icon: '🎈', bg: 'bg-purple-100 text-purple-600' },
-    { user: 'Duy Cáp Văn Mạnh', level: 1, game: 'Mưa Từ Vựng', score: '0', time: '1 phút trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
-    { user: 'avaia', level: 7, game: 'Mưa Từ Vựng', score: '555', time: '2 phút trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
-    { user: 'Duy Cáp Văn Mạnh', level: 1, game: 'Nối Từ', score: '2,070', time: '3 phút trước', icon: '🧩', bg: 'bg-teal-100 text-teal-600' },
-    { user: 'avaia', level: 7, game: 'Mưa Từ Vựng', score: '1,320', time: '3 phút trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
-    { user: 'dirtymatch4x', level: 2, game: 'Mưa Từ Vựng', score: '4,860', time: '4 phút trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
-    { user: 'avaia', level: 7, game: 'Mưa Từ Vựng', score: '210', time: '5 phút trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
-    { user: 'Duy Cáp Văn Mạnh', level: 1, game: 'Nối Từ', score: '1,025', time: '5 phút trước', icon: '🧩', bg: 'bg-teal-100 text-teal-600' }
+    { id: '1', user: 'Nguyễn Hoàng Nam', level: 7, game: 'Mưa Từ Vựng', score: 1350, time: '6 giây trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
+    { id: '2', user: 'Lê Thị Mai', level: 5, game: 'Ong Chính Tả', score: 1890, time: '18 giây trước', icon: '🔊', bg: 'bg-amber-100 text-amber-600' },
+    { id: '3', user: 'Phạm Quốc Huy', level: 4, game: 'Mưa Từ Vựng', score: 850, time: '32 giây trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
+    { id: '4', user: 'Vũ Bích Ngọc', level: 7, game: 'Ném Hoa Quả', score: 920, time: '47 giây trước', icon: '🍎', bg: 'bg-lime-100 text-lime-600' },
+    { id: '5', user: 'Đỗ Minh Đức', level: 6, game: 'Đấu Trường Từ Vựng', score: 1240, time: '1 phút trước', icon: '⚔️', bg: 'bg-rose-100 text-rose-600' },
+    { id: '6', user: 'Hoàng Thanh Hà', level: 8, game: 'Mưa Từ Vựng', score: 1560, time: '2 phút trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
+    { id: '7', user: 'Trần Văn An', level: 3, game: 'Nối Từ', score: 2070, time: '3 phút trước', icon: '🧩', bg: 'bg-teal-100 text-teal-600' },
+    { id: '8', user: 'Nguyễn Phương Thảo', level: 9, game: 'Mưa Từ Vựng', score: 2320, time: '3 phút trước', icon: '🌧️', bg: 'bg-emerald-100 text-emerald-600' },
+    { id: '9', user: 'Bùi Anh Tuấn', level: 10, game: 'Luyện Gõ', score: 4860, time: '4 phút trước', icon: '🚀', bg: 'bg-sky-100 text-sky-600' }
   ];
 
   const dailyLeaderboard = [
-    { rank: 1, badge: '🥇', name: '林庭瑜', level: 2, score: '224,580' },
-    { rank: 2, badge: '🥈', name: 'avaia', level: 7, score: '180,090' },
-    { rank: 3, badge: '🥉', name: 'Cẩm Tiên Đỗ Thị', level: 35, score: '133,919', extra: '⚡2 🛡️' },
-    { rank: 4, badge: '4', name: 'Vũ Lê Triều', level: 4, score: '115,880' },
-    { rank: 5, badge: '5', name: 'Hà Nguyễn', level: 11, score: '110,670' },
-    { rank: 6, badge: '6', name: 'Hữu Phước', level: 1, score: '101,070' },
-    { rank: 7, badge: '7', name: 'Sinh Hùng Nguyễn', level: 1, score: '94,620' },
-    { rank: 8, badge: '8', name: 'Derel Tam', level: 1, score: '88,800', extra: '⚡1' },
-    { rank: 9, badge: '9', name: 'Zougira Hikmah', level: 3, score: '85,590' },
-    { rank: 10, badge: '10', name: 'Ý Nhu', level: 4, score: '85,100' }
+    { id: '1', userId: 'usr_01', name: 'Nguyễn Hoàng Nam', level: 12, score: 224580, streakBoost: 0, hasShield: false },
+    { id: '2', userId: 'usr_02', name: 'Lê Thị Mai', level: 11, score: 180090, streakBoost: 0, hasShield: false },
+    { id: '3', userId: 'usr_03', name: 'Phạm Quốc Huy', level: 10, score: 133919, streakBoost: 2, hasShield: true },
+    { id: '4', userId: 'usr_04', name: 'Vũ Bích Ngọc', level: 9, score: 115880, streakBoost: 0, hasShield: false },
+    { id: '5', userId: 'usr_05', name: 'Đỗ Minh Đức', level: 8, score: 110670, streakBoost: 0, hasShield: false },
+    { id: '6', userId: 'usr_06', name: 'Hoàng Thanh Hà', level: 8, score: 101070, streakBoost: 0, hasShield: false },
+    { id: '7', userId: 'usr_07', name: 'Trần Văn An', level: 7, score: 94620, streakBoost: 0, hasShield: false },
+    { id: '8', userId: 'usr_08', name: 'Nguyễn Phương Thảo', level: 7, score: 88800, streakBoost: 1, hasShield: false },
+    { id: '9', userId: 'usr_09', name: 'Bùi Anh Tuấn', level: 6, score: 85590, streakBoost: 0, hasShield: false },
+    { id: '10', userId: 'usr_10', name: 'Đặng Bảo Trâm', level: 6, score: 85100, streakBoost: 0, hasShield: false }
   ];
 
   const gameQuestions = [
@@ -366,9 +363,9 @@ export default function Games() {
               </h3>
 
               <div className="space-y-2.5">
-                {recentActivities.map((act, idx) => (
+                {recentActivities.map((act) => (
                   <div
-                    key={idx}
+                    key={act.id}
                     className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -377,7 +374,7 @@ export default function Games() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-extrabold text-slate-900 dark:text-white truncate">
-                          {act.user} <span className="px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-[9px] text-slate-600 dark:text-slate-300 font-bold">Lv.{act.level}</span> <span className="font-normal text-slate-500">đạt <strong className="text-slate-900 dark:text-white">{act.score}</strong> điểm trong <strong>{act.game}</strong></span>
+                          {act.user} <span className="px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-[9px] text-slate-600 dark:text-slate-300 font-bold">Lv.{act.level}</span> <span className="font-normal text-slate-500">đạt <strong className="text-slate-900 dark:text-white">{act.score.toLocaleString('vi-VN')}</strong> điểm trong <strong>{act.game}</strong></span>
                         </p>
                         <span className="text-[10px] font-semibold text-slate-400">{act.time}</span>
                       </div>
@@ -385,7 +382,7 @@ export default function Games() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 font-mono font-black text-slate-800 dark:text-slate-200 text-xs">
-                        {act.score}
+                        {act.score.toLocaleString('vi-VN')}
                       </span>
                       <div className={`w-7 h-7 rounded-xl ${act.bg} flex items-center justify-center text-xs`}>
                         {act.icon}
@@ -397,7 +394,7 @@ export default function Games() {
             </div>
 
             {/* Right Column: Top người chơi trong ngày (4 cols) */}
-            <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between">
+            <div className="lg:col-span-4 bg-[#FFFFFF] dark:bg-slate-900 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
                 <h3 className="font-black text-sm uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-amber-500" />
@@ -405,33 +402,39 @@ export default function Games() {
                 </h3>
 
                 <div className="space-y-2">
-                  {dailyLeaderboard.map((user) => (
-                    <div 
-                      key={user.rank}
-                      className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-5 font-black text-slate-700 dark:text-slate-300 text-center shrink-0">
-                          {user.badge}
-                        </span>
-                        <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold shrink-0">
-                          👤
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-extrabold text-slate-900 dark:text-white truncate">
-                            {user.name}
-                          </p>
-                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400">
-                            Lv.{user.level} {user.extra || ''}
-                          </span>
-                        </div>
-                      </div>
+                  {dailyLeaderboard.map((user, idx) => {
+                    const rank = idx + 1;
+                    const badgeIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                    const extraText = `${user.streakBoost > 0 ? `⚡${user.streakBoost} ` : ''}${user.hasShield ? '🛡️' : ''}`.trim();
 
-                      <span className="font-mono font-black text-slate-900 dark:text-white text-xs shrink-0">
-                        {user.score}
-                      </span>
-                    </div>
-                  ))}
+                    return (
+                      <div 
+                        key={user.id}
+                        className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-5 font-black text-slate-700 dark:text-slate-300 text-center shrink-0">
+                            {badgeIcon}
+                          </span>
+                          <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold shrink-0">
+                            👤
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-slate-900 dark:text-white truncate">
+                              {user.name}
+                            </p>
+                            <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400">
+                              Lv.{user.level} {extraText}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="font-mono font-black text-slate-900 dark:text-white text-xs shrink-0">
+                          {user.score.toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

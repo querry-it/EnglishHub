@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NoteModal from './NoteModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function DictationStudio({ lesson }) {
+  const { openProModal } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [hideMedia, setHideMedia] = useState(false);
   const [hideTranscript, setHideTranscript] = useState(false);
@@ -468,7 +470,7 @@ export default function DictationStudio({ lesson }) {
               </div>
 
               <button 
-                onClick={() => setIsProLocked(false)} // Unlock for demo when clicked
+                onClick={openProModal}
                 className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-500/20 transition-transform active:scale-98 flex items-center gap-2"
               >
                 <Crown className="w-4 h-4 text-amber-300 fill-current" />

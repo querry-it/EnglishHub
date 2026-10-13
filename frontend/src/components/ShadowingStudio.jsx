@@ -6,8 +6,11 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NoteModal from './NoteModal';
+import { useAuth } from '../context/AuthContext';
+import { Crown, Lock } from 'lucide-react';
 
 export default function ShadowingStudio({ lesson }) {
+  const { openProModal } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
@@ -18,6 +21,7 @@ export default function ShadowingStudio({ lesson }) {
   const [playbackSpeed, setPlaybackSpeed] = useState('1x');
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
+  const [isProLocked, setIsProLocked] = useState(lesson?.isPro || false);
 
   // Note Modal state
   const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -147,6 +151,30 @@ export default function ShadowingStudio({ lesson }) {
           hideTranscript ? 'lg:col-span-12' : 'lg:col-span-8'
         } bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-sm h-full overflow-y-auto flex flex-col justify-between space-y-6 custom-scrollbar`}>
           
+          {isProLocked ? (
+            <div className="flex-1 flex flex-col items-center justify-center my-auto p-8 text-center space-y-5 border-2 border-amber-300 dark:border-amber-500/60 rounded-3xl bg-amber-50/30 dark:bg-amber-950/20">
+              <div className="w-16 h-16 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center shadow-lg">
+                <Lock className="w-8 h-8 stroke-[2.5]" />
+              </div>
+
+              <div className="space-y-2 max-w-sm">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                  Tính năng Premium
+                </h3>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Bài học này dành cho tài khoản PRO. Nâng cấp tài khoản của bạn để truy cập vào tất cả các bài học độc quyền.
+                </p>
+              </div>
+
+              <button 
+                onClick={openProModal}
+                className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-500/20 transition-transform active:scale-98 flex items-center gap-2"
+              >
+                <Crown className="w-4 h-4 text-amber-300 fill-current" />
+                MỞ KHÓA PRO
+              </button>
+            </div>
+          ) : (
           <div className="space-y-6">
             
             {/* HTML5 Audio Player Bar */}
@@ -255,6 +283,7 @@ export default function ShadowingStudio({ lesson }) {
             </div>
 
           </div>
+          )}
 
           {/* Comments Collapsible Section at Bottom */}
           <div className="pt-6">

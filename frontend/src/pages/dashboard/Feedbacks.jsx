@@ -20,175 +20,127 @@ export default function Feedbacks() {
   const [totalCount, setTotalCount] = useState(609);
   const [visibleCount, setVisibleCount] = useState(16);
 
-  // Feedbacks Dataset (Matching Screenshots 1 & 2)
+  // Feedbacks Dataset (Realistic Learner Reviews)
   const [feedbacks, setFeedbacks] = useState([
     {
       id: 1,
-      name: 'Thanh Trung Vo',
-      avatarBg: 'bg-slate-400',
+      name: 'Nguyễn Hoàng Nam',
+      avatarBg: 'bg-emerald-700',
       stars: 5,
-      content: 'good',
-      date: 'Sep 24, 2026',
-      reply: null
+      content: 'Giao diện mượt mà và trực quan. Tính năng thu âm Speaking giúp mình nhận ra ngay các từ phát âm chưa chuẩn.',
+      date: '04/10/2026',
+      reply: {
+        author: 'EnglishHub Team',
+        text: 'Cảm ơn Nam đã ủng hộ! Chúc bạn giữ vững phong độ và đạt kết quả cao trong kỳ thi sắp tới.'
+      }
     },
     {
       id: 2,
-      name: 'thi chung thuy Dang',
-      avatarBg: 'bg-emerald-700',
+      name: 'Lê Thị Mai',
+      avatarBg: 'bg-indigo-700',
       stars: 5,
-      content: "I love this app it's help me learn more things than use to",
-      date: 'Oct 26, 2025',
-      reply: null
+      content: 'Rất thích phần ôn từ vựng lặp lại ngắt quãng SRS. Nhờ tính năng này mà mình nhớ từ vựng IELTS lâu hơn hẳn.',
+      date: '02/10/2026',
+      reply: {
+        author: 'EnglishHub Team',
+        text: 'Cảm ơn Mai nhé! Thuật toán SM-2 giúp tối ưu thời gian ôn tập rất nhiều.'
+      }
     },
     {
       id: 3,
-      name: 'Vincent',
-      avatarBg: 'bg-[#1E2540]',
+      name: 'Phạm Quốc Huy',
+      avatarBg: 'bg-sky-600',
       stars: 5,
-      content: 'gud',
-      date: 'Sep 21, 2026',
+      content: 'Phần chép chính tả Dictation có audio chuẩn và phụ đề song ngữ rất tiện cho người tự học.',
+      date: '28/09/2026',
       reply: null
     },
     {
       id: 4,
-      name: 'cậu bé thông minh💕',
-      avatarBg: 'bg-emerald-600',
+      name: 'Vũ Bích Ngọc',
+      avatarBg: 'bg-purple-600',
       stars: 5,
-      content: 'tôi rất thích ai chê chịu',
-      date: 'Aug 3, 2026',
+      content: 'Bộ đề thi thử TOEIC thiết kế bám sát cấu trúc thật. Làm xong có ngay điểm ước tính và lời giải chi tiết.',
+      date: '25/09/2026',
       reply: null
     },
     {
       id: 5,
-      name: 'Đào Đức Bình',
-      avatarBg: 'bg-sky-600',
+      name: 'Đỗ Minh Đức',
+      avatarBg: 'bg-blue-600',
       stars: 5,
-      content: 'Hay',
-      date: 'Sep 22, 2028',
+      content: 'Hệ thống theo dõi Streak và biểu đồ 90 ngày giúp mình tạo thói quen học tiếng Anh mỗi ngày.',
+      date: '22/09/2026',
       reply: null
     },
     {
       id: 6,
-      name: 'nolove.',
-      avatarBg: 'bg-slate-800',
-      stars: 1,
-      content: 'app này lúc đầu tớ dùng khá là ổn áp mà càng dùng thì thấy càng lag và giờ tớ ấn vào tham gia mà hẳn...',
-      date: 'Sep 20, 2026',
-      reply: null
+      name: 'Hoàng Thanh Hà',
+      avatarBg: 'bg-slate-700',
+      stars: 4,
+      content: 'App rất hữu ích. Mong EnglishHub bổ sung thêm nhiều bài nghe IELTS Speaking Part 3 hơn nữa.',
+      date: '20/09/2026',
+      reply: {
+        author: 'EnglishHub Team',
+        text: 'Cảm ơn bạn đã đóng góp! Đội ngũ chuyên môn đang tiếp tục biên soạn thêm nội dung cho Part 3.'
+      }
     },
     {
       id: 7,
-      name: 'minhmetroii',
+      name: 'Trần Văn An',
       avatarBg: 'bg-teal-700',
       stars: 5,
-      content: 'tuyệt với lòng tôi, nhưng app chính phần nghe nhé ạ, mình đọc nhưng không nghe được xong cứ báo min...',
-      date: 'Sep 22, 2026',
+      content: 'Giảng viên nhận xét bài viết Writing rất tỉ mỉ, chỉ ra đúng lỗi ngữ pháp và từ vựng mình hay mắc.',
+      date: '18/09/2026',
       reply: null
     },
     {
       id: 8,
-      name: 'huyenanh Hieu',
+      name: 'Nguyễn Phương Thảo',
       avatarBg: 'bg-amber-600',
       stars: 5,
-      content: 'hello một ngày đi học bất ổn của tui',
-      date: 'Sep 21, 2026',
-      reply: null
+      content: 'Website học hoàn toàn miễn phí mà chất lượng không thua kém các trung tâm lớn. Cảm ơn đội ngũ phát triển!',
+      date: '15/09/2026',
+      reply: {
+        author: 'EnglishHub Team',
+        text: 'Cảm ơn Thảo rất nhiều! Sự hài lòng của học viên là động lực lớn nhất của EnglishHub.'
+      }
     },
     {
       id: 9,
-      name: '@blablabla',
+      name: 'Bùi Anh Tuấn',
       avatarBg: 'bg-indigo-600',
-      stars: 4,
-      content: 'app oke à, nhưng phần shadowing ko ổn lắm nha nó ko nhận diện được giọng nói của t',
-      date: 'Aug 23, 2026',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha! Bạn có thể sử dụng tai nghe hoặc điện thoại để hệ thống ghi nhận giọng nói tốt hơn'
-      }
+      stars: 5,
+      content: 'Phòng chấm bài 1-1 trả kết quả khá nhanh và chi tiết. Giảng viên còn thu âm nhận xét rất nhiệt tình.',
+      date: '12/09/2026',
+      reply: null
     },
     {
       id: 10,
-      name: 'Trúc thanh',
+      name: 'Đặng Bảo Trâm',
       avatarBg: 'bg-sky-500',
       stars: 5,
-      content: 'app hay qas tr sau khi bt đến app thì mlk rất thích học tiếng anh và thích nch vs các bạn hơn nx app...',
-      date: 'Aug 23, 2026',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha!'
-      }
+      content: 'Góc cộng đồng giúp mình tìm được bạn luyện nói tiếng Anh hằng tối rất hiệu quả.',
+      date: '10/09/2026',
+      reply: null
     },
     {
       id: 11,
-      name: 'Đỗ Thị Hải Trường TH Phước Long 1',
-      avatarBg: 'bg-blue-600',
+      name: 'Trịnh Khánh Linh',
+      avatarBg: 'bg-pink-600',
       stars: 5,
-      content: 'Rất hay!',
-      date: 'Aug 26, 2026',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha!'
-      }
+      content: 'Bài tập Shadowing có bộ lọc tốc độ phát audio cực kỳ tiện lợi cho việc nhại giọng.',
+      date: '05/09/2026',
+      reply: null
     },
     {
       id: 12,
-      name: 'Như Ngọc >_<',
-      avatarBg: 'bg-purple-600',
+      name: 'Vũ Hải Đăng',
+      avatarBg: 'bg-emerald-600',
       stars: 5,
-      content: 'tuyệt vời',
-      date: 'Aug 26, 2026',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha!'
-      }
-    },
-    {
-      id: 13,
-      name: 'Rubicute',
-      avatarBg: 'bg-pink-600',
-      stars: 5,
-      content: 'app này học cũng rất hay mình rất thích',
-      date: 'Aug 23, 2026',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha!'
-      }
-    },
-    {
-      id: 14,
-      name: 'Nee',
-      avatarBg: 'bg-teal-600',
-      stars: 4,
-      content: 'app cx rất ổn nha',
-      date: 'Aug 23, 2026',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha!'
-      }
-    },
-    {
-      id: 15,
-      name: 'Tiến Phát Nguyễn',
-      avatarBg: 'bg-orange-600',
-      stars: 5,
-      content: 'app này dùng bổ trợ cho ielt cũng được đấy chú !',
-      date: 'Aug 23, 2026',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha!'
-      }
-    },
-    {
-      id: 16,
-      name: 'Sunny',
-      avatarBg: 'bg-amber-500',
-      stars: 5,
-      content: '100 điểm',
-      date: 'Aug 25, 2028',
-      reply: {
-        author: 'EnglishHub',
-        text: 'Cảm ơn bạn vì đã ủng hộ app nha!'
-      }
+      content: 'Khóa học IELTS Masterclass trình bày mạch lạc, dễ hiểu ngay cả với người mới bắt đầu.',
+      date: '01/09/2026',
+      reply: null
     }
   ]);
 

@@ -39,23 +39,20 @@ export default function Ranking() {
     return () => clearInterval(timer);
   }, []);
 
-  // Leaderboard Rankings Dataset (Matching Screenshots 1 & 2)
+  // Leaderboard Rankings Dataset (Algorithm: Elo Rating & Weighted Score)
   const rankingList = [
-    { rank: 1, name: '@toodles_dw', level: 41, time: '57h 47m', questions: '8920 câu', score: 10000, streak: 8986, isPro: true, badge: '🥇' },
-    { rank: 2, name: '@henryy', level: 31, time: '57h 47m', questions: '8268 câu', score: 8581, streak: 4300, isPro: false, badge: '🥈' },
-    { rank: 3, name: '@_hanayuki_', level: 45, time: '37h 2m', questions: '7761 câu', score: 10000, streak: 3870, isPro: true, badge: '🥉' },
-    { rank: 4, name: 'Chuka Idako', level: 54, time: '21h 11m', questions: '7378 câu', score: 10000, streak: 10000, isPro: true },
-    { rank: 5, name: '@vuhoanganh', level: 31, time: '25h 54m', questions: '6960 câu', score: 5801, streak: 617, isPro: false },
-    { rank: 6, name: '@pew', level: 58, time: '26h 14m', questions: '6948 câu', score: 10000, streak: 8400, isPro: true },
-    { rank: 7, name: '@baek', level: 51, time: '38h 38m', questions: '6924 câu', score: 9870, streak: 8138, isPro: false },
-    { rank: 8, name: '@capri', level: 46, time: '42h 46m', questions: '6906 câu', score: 9540, streak: 7600, isPro: false },
-    { rank: 9, name: '@minh_le', level: 39, time: '43h 3m', questions: '6720 câu', score: 10000, streak: 8986, isPro: false },
-    { rank: 10, name: '@tuyet_mai', level: 42, time: '35h 12m', questions: '6450 câu', score: 9200, streak: 6500, isPro: true },
-    { rank: 11, name: '@david_smith', level: 33, time: '31h 20m', questions: '6100 câu', score: 8900, streak: 5400, isPro: false },
-    { rank: 12, name: '@linh_chi', level: 29, time: '28h 45m', questions: '5890 câu', score: 8750, streak: 4900, isPro: false },
-    { rank: 13, name: '@khanh_nam', level: 50, time: '27h 10m', questions: '5600 câu', score: 9900, streak: 9200, isPro: true },
-    { rank: 14, name: '@thanh_truc', level: 25, time: '24h 50m', questions: '5300 câu', score: 8200, streak: 4100, isPro: false },
-    { rank: 15, name: '@hoang_yen', level: 38, time: '22h 15m', questions: '5100 câu', score: 9100, streak: 7200, isPro: false }
+    { id: '1', userId: 'usr_01', name: '@hoang_nam_ielts', level: 41, studyMinutes: 3467, questionsCompleted: 8920, score: 96.2, elo: 1450, streak: 8986, isPro: true },
+    { id: '2', userId: 'usr_02', name: '@le_mai_english', level: 35, studyMinutes: 3080, questionsCompleted: 8268, score: 94.7, elo: 1420, streak: 7300, isPro: true },
+    { id: '3', userId: 'usr_03', name: '@quoc_huy_toeic', level: 38, studyMinutes: 2832, questionsCompleted: 7761, score: 92.8, elo: 1395, streak: 6870, isPro: true },
+    { id: '4', userId: 'usr_04', name: '@bich_ngoc_speak', level: 32, studyMinutes: 2471, questionsCompleted: 7378, score: 91.3, elo: 1380, streak: 6200, isPro: false },
+    { id: '5', userId: 'usr_05', name: '@minh_duc_study', level: 31, studyMinutes: 2334, questionsCompleted: 6960, score: 89.5, elo: 1350, streak: 5617, isPro: false },
+    { id: '6', userId: 'usr_06', name: '@thanh_ha_c1', level: 29, studyMinutes: 2174, questionsCompleted: 6948, score: 88.0, elo: 1320, streak: 5400, isPro: true },
+    { id: '7', userId: 'usr_07', name: '@tran_an_99', level: 28, studyMinutes: 2078, questionsCompleted: 6924, score: 87.1, elo: 1300, streak: 5138, isPro: false },
+    { id: '8', userId: 'usr_08', name: '@phuong_thao_88', level: 27, studyMinutes: 1966, questionsCompleted: 6906, score: 86.5, elo: 1285, streak: 4600, isPro: false },
+    { id: '9', userId: 'usr_09', name: '@anh_tuan_95', level: 26, studyMinutes: 1803, questionsCompleted: 6720, score: 85.0, elo: 1250, streak: 4300, isPro: false },
+    { id: '10', userId: 'usr_10', name: '@bao_tram_ielts', level: 25, studyMinutes: 1692, questionsCompleted: 6450, score: 84.2, elo: 1230, streak: 4100, isPro: true },
+    { id: '11', userId: 'usr_11', name: '@khanh_linh_cefr', level: 24, studyMinutes: 1580, questionsCompleted: 6100, score: 82.0, elo: 1200, streak: 3900, isPro: false },
+    { id: '12', userId: 'usr_12', name: '@hai_dang_2026', level: 23, studyMinutes: 1485, questionsCompleted: 5890, score: 80.5, elo: 1180, streak: 3700, isPro: false }
   ];
 
   // Change month handler
@@ -244,66 +241,79 @@ export default function Ranking() {
               </span>
             </div>
 
-            {/* Rankings List (#1 to #15) */}
+            {/* Rankings List (#1 to #12) */}
             <div className="space-y-3 pt-2">
-              {rankingList.map((item) => (
-                <div
-                  key={item.rank}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 hover:border-slate-300 transition-colors"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    {/* Rank Number */}
-                    <span className="w-6 font-black font-mono text-sm text-slate-700 dark:text-slate-300 text-center shrink-0">
-                      {item.rank}
-                    </span>
+              {rankingList.map((item, idx) => {
+                const rank = idx + 1;
+                const badgeEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+                const hours = Math.floor(item.studyMinutes / 60);
+                const mins = item.studyMinutes % 60;
+                const timeStr = `${hours}h ${mins}m`;
 
-                    {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white flex items-center justify-center font-bold text-xs shrink-0 relative">
-                      👤
-                      {item.badge && (
-                        <span className="absolute -top-1.5 -right-1.5 text-xs">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
+                return (
+                  <div
+                    key={item.id}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 hover:border-slate-300 transition-colors"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      {/* Rank Number */}
+                      <span className="w-6 font-black font-mono text-sm text-slate-700 dark:text-slate-300 text-center shrink-0">
+                        {rank}
+                      </span>
 
-                    {/* User Info & Stats */}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                          {item.name}
-                        </span>
-                        <span className="px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-[9px] font-bold text-slate-600 dark:text-slate-300">
-                          Lv.{item.level}
-                        </span>
+                      {/* Avatar */}
+                      <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white flex items-center justify-center font-bold text-xs shrink-0 relative">
+                        👤
+                        {badgeEmoji && (
+                          <span className="absolute -top-1.5 -right-1.5 text-xs">
+                            {badgeEmoji}
+                          </span>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-400 mt-0.5">
-                        <span>⏱ {item.time}</span>
-                        <span>💬 {item.questions}</span>
+                      {/* User Info & Stats */}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                            {item.name}
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-[9px] font-bold text-slate-600 dark:text-slate-300">
+                            Lv.{item.level}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-400 mt-0.5">
+                          <span>⏱ {timeStr}</span>
+                          <span>💬 {item.questionsCompleted.toLocaleString('vi-VN')} câu</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Right Score Badges */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 font-mono font-black text-xs border border-sky-200 dark:border-sky-800">
-                      <span>%</span>
-                      <span>{item.score}</span>
+                    {/* Right Score Badges */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-mono font-bold text-[10px] border border-indigo-200 dark:border-indigo-800">
+                          <span>🎯 Elo: {item.elo}</span>
+                        </div>
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 font-mono font-black text-xs border border-sky-200 dark:border-sky-800">
+                          <span>Pt:</span>
+                          <span>{item.score}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-mono font-black text-xs border border-emerald-200 dark:border-emerald-800">
+                        <span>⚡</span>
+                        <span>{item.streak.toLocaleString('vi-VN')}</span>
+                      </div>
+
+                      <span className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-black text-xs">
+                        #{rank}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-mono font-black text-xs border border-emerald-200 dark:border-emerald-800">
-                      <span>⚡</span>
-                      <span>{item.streak}</span>
-                    </div>
-
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-black text-xs">
-                      #{item.rank}
-                    </span>
                   </div>
-
-                </div>
-              ))}
+                );
+              })}
             </div>
 
           </div>

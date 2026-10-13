@@ -4,7 +4,7 @@ import { X, ArrowRight, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AppMascot from './AppMascot';
 
-export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
+export default function AuthModal({ isOpen, onClose, initialMode = 'login', isInline = false }) {
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState(initialMode); // 'login' | 'register'
@@ -112,22 +112,28 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
     setMode(targetMode);
   };
 
+  const containerClasses = isInline
+    ? "w-full max-w-4xl mx-auto flex items-center justify-center animate-fade-in p-4"
+    : "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in";
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+    <div className={containerClasses}>
       {/* Backdrop overlay */}
-      <div className="absolute inset-0" onClick={onClose} />
+      {!isInline && <div className="absolute inset-0" onClick={onClose} />}
 
       {/* Main Modal Box */}
       <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row z-10 animate-scale-up border border-slate-100 dark:border-slate-800">
 
         {/* Close Button (X) */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 z-20 w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors"
-          title="Đóng"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {!isInline && (
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 z-20 w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors"
+            title="Đóng"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Left Side: Form Area */}
         <div className="p-8 sm:p-10 md:w-1/2 flex flex-col justify-center space-y-5">

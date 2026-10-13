@@ -40,63 +40,63 @@ export default function Community() {
     { label: '# Khác' }
   ];
 
-  // Posts Feed Dataset (Matching Screenshot 1 & 2)
+  // Posts Feed Dataset (Standard Real English Learning Discussions)
   const [posts, setPosts] = useState([
     {
       id: 1,
-      author: 'secret_agent',
+      author: 'hoang_nam_ielts',
       level: 16,
       avatarBg: 'bg-emerald-600',
-      category: 'Khác',
-      time: '11 giờ trước',
-      title: 'Lại là cuộc hội thoại của cộng đồng',
-      content: 'Cần tìm bạn luyện nghe và nói 1v1 phản xạ tiếng Anh mỗi ngày vào buổi tối từ 20:00 - 21:00. Bạn nào cùng mục tiêu thì nhắn tin cho mình nhé!',
-      votes: 3,
-      commentsCount: 2,
-      isVoted: false,
+      category: 'Tìm Bạn Học',
+      time: '2 giờ trước',
+      title: 'Tìm bạn luyện nghe & nói IELTS Speaking 1v1 mỗi tối (Target 7.0+)',
+      content: 'Cần tìm bạn luyện nghe và phản xạ nói tiếng Anh mỗi ngày vào khung giờ 20:30 - 21:30 qua Google Meet. Chúng mình sẽ luyện theo bộ đề IELTS Speaking Part 1 & 2 quý mới nhất. Bạn nào có cùng mục tiêu thì kết nối nhé!',
+      votes: 18,
+      commentsCount: 5,
+      isVoted: true,
       comments: [
-        { id: 101, author: 'thvan', text: 'Cho mình đăng ký 1 suất nhé!', time: '10 giờ trước' }
+        { id: 101, author: 'thu_ha_english', text: 'Cho mình đăng ký 1 suất nhé! Target mình cũng 7.0.', time: '1 giờ trước' }
       ]
     },
     {
       id: 2,
-      author: 'amuro',
-      level: 24,
+      author: 'mai_le_english',
+      level: 12,
       avatarBg: 'bg-indigo-600',
       category: 'Góc Chia Sẻ',
-      time: '14 giờ trước',
-      title: 'PHẦN 2: BẢN HỢP ĐỒNG MẶT VÀ MẶT NẠ SỤP ĐỔ',
-      content: 'Đêm đó, cơn mưa tầm tã trút xuống thành phố. An Nhiên ngồi lặng lẽ trên chiếc sofa trong phòng khách tối om, chờ đợi bước chân quen thuộc của Hải Đăng. Tiếng mở cửa vang lên, anh ta cầm trên tay bó hoa hồng đỏ thắm - món quà anh ta vẫn luôn dùng để ngụy trang cho những dối trá...',
-      votes: 0,
-      commentsCount: 1,
+      time: '5 giờ trước',
+      title: 'Mẹo phân bổ thời gian 60 phút làm bài TOEIC Reading (Parts 5, 6, 7)',
+      content: 'Kinh nghiệm đạt 450/490 điểm Reading TOEIC của mình: 1. Part 5: Làm tối đa 10-12 phút cho 30 câu. 2. Part 6: Làm trong 8 phút. 3. Part 7: Dành trọn 40 phút cho các đoạn đơn và đoạn kép. Luôn đọc câu hỏi trước khi dò từ khóa trong văn bản!',
+      votes: 34,
+      commentsCount: 8,
       isVoted: false,
       comments: []
     },
     {
       id: 3,
-      author: 'amuro',
+      author: 'david_tran',
       level: 24,
-      avatarBg: 'bg-indigo-600',
+      avatarBg: 'bg-sky-600',
       category: 'Học Tiếng Anh',
       time: '14 giờ trước',
-      title: 'The Importance of Self-Study in the Digital Age',
-      content: 'In today\'s rapidly changing digital world, information is available at our fingertips. With just a click, we can access endless libraries, online courses, and interactive tools. However, this abundance of information also presents a challenge: having access to knowledge is not the same as mastering it...',
-      votes: 0,
-      commentsCount: 0,
+      title: 'The Importance of Self-Study & Consistency in Language Learning',
+      content: 'In today\'s digital age, mastering English relies heavily on daily consistency rather than cramming. Spending 20 minutes every day practicing Shadowing and Dictation brings much better long-term fluency than studying 5 hours straight on weekends.',
+      votes: 29,
+      commentsCount: 4,
       isVoted: false,
       comments: []
     },
     {
       id: 4,
-      author: 'minh_nguyen',
+      author: 'quoc_huy_dev',
       level: 8,
-      avatarBg: 'bg-sky-600',
+      avatarBg: 'bg-purple-600',
       category: 'Học Tiếng Anh',
       time: '1 ngày trước',
-      title: 'Self-Study English Speaking Tips for Absolute Beginners',
-      content: 'Hi everyone! I used to be terrified of speaking English because I was afraid of making grammar mistakes. Here are 3 habits that helped me overcome my fear: 1. Mirror dictation 2. Shadowing short clips 3. Speaking out loud...',
-      votes: 12,
-      commentsCount: 4,
+      title: '3 Thói quen giúp mình vượt qua nỗi sợ nói tiếng Anh sai ngữ pháp',
+      content: 'Chào mọi người! Trước đây mình từng rất ngại nói vì sợ phát âm sai. Dưới đây là 3 thói quen đã giúp mình tự tin hơn: 1. Thu âm bài nói bằng tính năng Speaking trên EnglishHub 2. Tập phát âm IPA hàng ngày 3. Nói thành tiếng khi đọc tin tức.',
+      votes: 42,
+      commentsCount: 12,
       isVoted: true,
       comments: []
     }
@@ -214,36 +214,6 @@ export default function Community() {
                 })}
               </div>
 
-              {/* Facebook Community Pill Button */}
-              <div className="pt-2">
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2.5 px-4 rounded-2xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-600 dark:text-sky-400 font-extrabold text-xs flex items-center justify-center gap-2 hover:bg-sky-100 transition-colors"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Facebook Community</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Left Bottom Mascot Illustration */}
-            <div className="flex justify-center pt-2">
-              <div className="w-28 h-28 relative">
-                <svg className="w-full h-full text-sky-500" viewBox="0 0 100 100" fill="none">
-                  <circle cx="50" cy="50" r="35" fill="#38BDF8" />
-                  <circle cx="40" cy="45" r="7" fill="white" />
-                  <circle cx="60" cy="45" r="7" fill="white" />
-                  <circle cx="41" cy="45" r="3.5" fill="#0F172A" />
-                  <circle cx="61" cy="45" r="3.5" fill="#0F172A" />
-                  <path d="M46 54 L54 54 L50 61 Z" fill="#F59E0B" />
-                  {/* Graduation cap */}
-                  <path d="M30 35 L50 25 L70 35 L50 45 Z" fill="#0F172A" />
-                  <rect x="47" y="40" width="6" height="12" fill="#0F172A" />
-                  <circle cx="70" cy="42" r="3" fill="#F59E0B" />
-                </svg>
-              </div>
             </div>
           </div>
 

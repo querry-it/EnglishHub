@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, BookOpen, PlusCircle, CheckSquare, 
+  Home, BookOpen, PlusCircle, CheckSquare, 
   Users, LogOut, Bell, Crown, Sparkles, ChevronRight 
 } from 'lucide-react';
 import AppMascot from '../../components/AppMascot';
@@ -10,7 +10,6 @@ import { useAuth } from '../../context/AuthContext';
 import InstructorDashboard from './InstructorDashboard';
 import InstructorCourses from './InstructorCourses';
 import CreateLesson from './CreateLesson';
-import InstructorGrading from './InstructorGrading';
 import InstructorStudents from './InstructorStudents';
 
 function InstructorSidebar({ onClose }) {
@@ -19,7 +18,6 @@ function InstructorSidebar({ onClose }) {
     { icon: Home, label: 'Trang chủ', path: '/instructor' },
     { icon: BookOpen, label: 'Khóa học của tôi', path: '/instructor/courses' },
     { icon: PlusCircle, label: 'Soạn bài học mới', path: '/instructor/create-lesson' },
-    { icon: CheckSquare, label: 'Hỗ trợ 1-1 Học viên PRO', path: '/instructor/grading', badge: 'PRO' },
     { icon: Users, label: 'Danh sách học viên', path: '/instructor/students' },
   ];
 
@@ -106,7 +104,6 @@ export default function InstructorLayout() {
             <Route path="/instructor" element={<InstructorDashboard />} />
             <Route path="/instructor/courses" element={<InstructorCourses />} />
             <Route path="/instructor/create-lesson" element={<CreateLesson />} />
-            <Route path="/instructor/grading" element={<InstructorGrading />} />
             <Route path="/instructor/students" element={<InstructorStudents />} />
           </Routes>
         </main>

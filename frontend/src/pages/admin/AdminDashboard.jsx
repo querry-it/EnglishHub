@@ -165,13 +165,13 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 pb-12">
       {/* Page Header / Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-3xl text-white border-2 border-indigo-900/50 shadow-md">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-indigo-400" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <ShieldCheck className="w-8 h-8 text-indigo-500" />
             <span>Trang Quản trị Hệ thống (Admin)</span>
           </h1>
-          <p className="text-xs text-slate-300 font-semibold">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">
             Quản lý người dùng, khóa học, nội dung blog và theo dõi doanh thu tổng quan của hệ thống.
           </p>
         </div>
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-3 shrink-0">
           <Link
             to="/admin/users"
-            className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-transform hover:scale-105"
+            className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-transform hover:-translate-y-0.5"
           >
             <Users className="w-4 h-4" />
             <span>QUẢN LÝ USERS</span>
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between space-y-3 hover:border-indigo-300 transition-all">
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-300 dark:border-slate-700 p-6 shadow-sm flex flex-col justify-between space-y-3 transition-all">
               <div className="flex items-center justify-between">
                 <div className={`w-10 h-10 rounded-2xl ${stat.bg} border flex items-center justify-center ${stat.color}`}>
                   <Icon className="w-5 h-5" />
@@ -213,7 +213,7 @@ export default function AdminDashboard() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 p-6">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-300 dark:border-slate-700 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-500" /> Doanh thu 6 tháng gần nhất
@@ -226,9 +226,9 @@ export default function AdminDashboard() {
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-2">
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{m.value}M</span>
-                  <div className="w-full relative" style={{ height: '150px' }}>
+                  <div className="w-12 md:w-16 relative" style={{ height: '150px' }}>
                     <div className="absolute bottom-0 w-full rounded-xl bg-slate-100 dark:bg-slate-800" style={{ height: '100%' }} />
-                    <div className="absolute bottom-0 w-full rounded-xl bg-gradient-to-t from-indigo-600 to-indigo-400 transition-all duration-700 hover:from-indigo-700 hover:to-indigo-500"
+                    <div className="absolute bottom-0 w-full rounded-xl bg-gradient-to-t from-indigo-600 to-indigo-400 transition-all duration-700 hover:from-indigo-700 hover:to-indigo-500 shadow-md"
                       style={{ height: `${heightPercent}%` }} />
                   </div>
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{m.month}</span>
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Top Courses */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-300 dark:border-slate-700 p-6 shadow-sm">
           <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <Star className="w-4 h-4 text-amber-500" /> Khóa học bán chạy
           </h3>
@@ -263,7 +263,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Orders Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 p-6">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-300 dark:border-slate-700 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-indigo-500" /> Giao dịch gần đây
