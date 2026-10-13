@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export default function MyVocabulary() {
-  const { user } = useAuth();
+  const { user, openProModal } = useAuth();
   
   const [activeTab, setActiveTab] = useState('list'); // 'list' | 'flashcard' | 'write'
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,13 +90,13 @@ export default function MyVocabulary() {
               <span>Gói miễn phí: bạn được lưu tối đa 100 từ. Nâng cấp Premium để lưu lên đến 5000 từ.</span>
             </div>
 
-            <Link
-              to="/pricing"
+            <button
+              onClick={openProModal}
               className="px-5 py-2.5 rounded-2xl bg-[#1E2540] dark:bg-indigo-600 hover:bg-[#151a2e] text-white font-black text-xs uppercase tracking-wider shadow-md transition-transform active:scale-98 shrink-0 flex items-center gap-1.5 self-end sm:self-auto"
             >
               <Crown className="w-4 h-4 text-amber-300 fill-current" />
               <span>NÂNG CẤP</span>
-            </Link>
+            </button>
           </div>
 
           {/* ================= 3. SUB-TABS (DANH SÁCH | THẺ GHI NHỚ | VIẾT) ================= */}

@@ -13,9 +13,25 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
 
   const openLoginModal = () => setIsLoginModalOpen(true);
   const closeLoginModal = () => setIsLoginModalOpen(false);
+
+  const openProModal = () => setIsProModalOpen(true);
+  const closeProModal = () => setIsProModalOpen(false);
+
+  const handleProUpgrade = () => {
+    const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    if (user || (savedUser && token)) {
+      // If already logged in, show Pro checkout modal directly
+      setIsProModalOpen(true);
+    } else {
+      // If not logged in, prompt login modal first
+      setIsLoginModalOpen(true);
+    }
+  };
 
   // Kiểm tra trạng thái đăng nhập khi ứng dụng khởi chạy
   useEffect(() => {
@@ -25,12 +41,10 @@ export function AuthProvider({ children }) {
       try {
         setUser(JSON.parse(savedUser));
       } catch {
-        // Dữ liệu hỏng → xóa đi
         localStorage.removeItem('user');
         localStorage.removeItem('accessToken');
       }
     }
-    // Nếu không có token → user = null (chưa đăng nhập)
     setLoading(false);
   }, []);
 
@@ -88,7 +102,6 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('accessToken');
       sessionStorage.removeItem('user');
       sessionStorage.removeItem('accessToken');
-      window.location.href = '/';
     }
   };
 
@@ -104,6 +117,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, loading, isAuthenticated: !!user,
       isLoginModalOpen, openLoginModal, closeLoginModal,
+      isProModalOpen, openProModal, closeProModal, handleProUpgrade,
       login, register, logout, updateProfile
     }}>
       {children}

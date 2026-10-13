@@ -4,7 +4,7 @@ import {
   Flame, Trophy, Search, Bell, Sun, Moon, Globe, Shield, Zap, Sparkles, 
   BookOpen, MessageSquare, Headphones, Award, Crown, Gamepad2, Layers, 
   MessageCircle, HelpCircle, FileText, Bookmark, LogOut, ChevronRight, ChevronLeft,
-  ShoppingBag, CheckCircle, ExternalLink, Play, Lock, ArrowUpRight
+  ShoppingBag, CheckCircle, ExternalLink, Play, Lock, ArrowUpRight, Calendar
 } from 'lucide-react';
 import ActivityHeatmap from '../../components/ActivityHeatmap';
 import MilestoneRewards from '../../components/MilestoneRewards';
@@ -222,6 +222,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
+
             <Link to="/vocabulary" className="p-5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold text-sm flex items-center justify-between hover:scale-[1.01] transition-transform shadow-lg shadow-orange-500/20">
               <div className="flex items-center gap-3">
                 <BookOpen className="w-6 h-6" />
@@ -259,6 +260,10 @@ export default function Dashboard() {
                 <div
                   key={`${lesson.id}-${idx}`}
                   onClick={() => {
+                    if (lesson.isPro) {
+                      openProModal();
+                      return;
+                    }
                     setSelectedLesson(lesson);
                     setIsStudyModeOpen(true);
                   }}

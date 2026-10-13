@@ -15,7 +15,7 @@ const FacebookIcon = ({ className = "w-4 h-4" }) => (
 );
 
 export default function AppHeader({ isPublic = false }) {
-  const { user, openLoginModal, logout } = useAuth();
+  const { user, openLoginModal, logout, handleProUpgrade , openProModal } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -64,13 +64,13 @@ export default function AppHeader({ isPublic = false }) {
   };
 
   const renderNavLinks = () => (
-    <nav className="flex items-center gap-1.5 sm:gap-2 font-bold text-slate-700 dark:text-slate-200">
+    <nav className="flex items-center gap-6 lg:gap-10 font-bold text-slate-500 dark:text-slate-400">
       <Link 
         to="/listening" 
-        className={`px-3 py-1.5 rounded-xl border-2 transition-all duration-200 whitespace-nowrap text-xs sm:text-sm ${
+        className={`transition-colors whitespace-nowrap text-sm ${
           isLinkActive('/listening')
-            ? 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-sm'
-            : 'border-transparent hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white'
+            ? 'text-slate-900 dark:text-white'
+            : 'hover:text-slate-900 dark:hover:text-white'
         }`}
       >
         Luyện nghe
@@ -78,10 +78,10 @@ export default function AppHeader({ isPublic = false }) {
       
       <Link 
         to="/listening?mode=shadowing" 
-        className={`px-3 py-1.5 rounded-xl border-2 transition-all duration-200 whitespace-nowrap text-xs sm:text-sm hidden sm:inline-block ${
+        className={`transition-colors whitespace-nowrap text-sm hidden sm:inline-block ${
           isLinkActive('/listening?mode=shadowing')
-            ? 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-sm'
-            : 'border-transparent hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white'
+            ? 'text-slate-900 dark:text-white'
+            : 'hover:text-slate-900 dark:hover:text-white'
         }`}
       >
         Shadowing
@@ -89,10 +89,10 @@ export default function AppHeader({ isPublic = false }) {
 
       <Link 
         to="/vocabulary" 
-        className={`px-3 py-1.5 rounded-xl border-2 transition-all duration-200 whitespace-nowrap text-xs sm:text-sm ${
+        className={`transition-colors whitespace-nowrap text-sm ${
           isLinkActive('/vocabulary')
-            ? 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-sm'
-            : 'border-transparent hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white'
+            ? 'text-slate-900 dark:text-white'
+            : 'hover:text-slate-900 dark:hover:text-white'
         }`}
       >
         Từ vựng
@@ -100,10 +100,10 @@ export default function AppHeader({ isPublic = false }) {
 
       <Link 
         to="/speaking" 
-        className={`px-3 py-1.5 rounded-xl border-2 transition-all duration-200 whitespace-nowrap text-xs sm:text-sm hidden lg:inline-block ${
+        className={`transition-colors whitespace-nowrap text-sm hidden lg:inline-block ${
           isLinkActive('/speaking')
-            ? 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-sm'
-            : 'border-transparent hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white'
+            ? 'text-slate-900 dark:text-white'
+            : 'hover:text-slate-900 dark:hover:text-white'
         }`}
       >
         Luyện nói
@@ -111,10 +111,10 @@ export default function AppHeader({ isPublic = false }) {
 
       <Link 
         to="/exams?type=ielts" 
-        className={`px-3 py-1.5 rounded-xl border-2 transition-all duration-200 flex items-center whitespace-nowrap text-xs sm:text-sm relative group ${
+        className={`transition-colors flex items-center whitespace-nowrap text-sm relative group ${
           isLinkActive('/exams?type=ielts')
-            ? 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-sm'
-            : 'border-transparent hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white'
+            ? 'text-slate-900 dark:text-white'
+            : 'hover:text-slate-900 dark:hover:text-white'
         }`}
       >
         <span>Luyện thi IELTS</span>
@@ -127,25 +127,25 @@ export default function AppHeader({ isPublic = false }) {
       <div className="relative" ref={moreMenuRef}>
         <button
           onClick={() => setIsMoreOpen(!isMoreOpen)}
-          className={`px-3 py-1.5 rounded-xl border-2 transition-all duration-200 flex items-center gap-1 focus:outline-none font-bold text-xs sm:text-sm group ${
+          className={`transition-colors flex items-center gap-1 focus:outline-none text-sm group ${
             isMoreActive
-              ? 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-sm'
-              : 'border-transparent hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white'
+              ? 'text-slate-900 dark:text-white'
+              : 'hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <span>Thêm</span>
-          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isMoreOpen && (
-          <div className="absolute left-0 top-10 w-52 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border-2 border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
+          <div className="absolute left-0 top-10 w-52 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
             <Link
               to="/exams?type=toeic"
               onClick={() => setIsMoreOpen(false)}
-              className={`block px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${
+              className={`block px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
                 isLinkActive('/exams?type=toeic')
-                  ? 'bg-blue-600 text-white font-extrabold'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-blue-600 hover:text-white'
+                  ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Luyện thi TOEIC
@@ -153,10 +153,10 @@ export default function AppHeader({ isPublic = false }) {
             <Link
               to="/games"
               onClick={() => setIsMoreOpen(false)}
-              className={`block px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${
+              className={`block px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
                 isLinkActive('/games')
-                  ? 'bg-blue-600 text-white font-extrabold'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-blue-600 hover:text-white'
+                  ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Trò chơi
@@ -164,10 +164,10 @@ export default function AppHeader({ isPublic = false }) {
             <Link
               to="/workspace"
               onClick={() => setIsMoreOpen(false)}
-              className={`block px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${
+              className={`block px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
                 isLinkActive('/workspace')
-                  ? 'bg-blue-600 text-white font-extrabold'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-blue-600 hover:text-white'
+                  ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Ôn tập
@@ -175,10 +175,10 @@ export default function AppHeader({ isPublic = false }) {
             <Link
               to="/community"
               onClick={() => setIsMoreOpen(false)}
-              className={`block px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${
+              className={`block px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
                 isLinkActive('/community')
-                  ? 'bg-blue-600 text-white font-extrabold'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-blue-600 hover:text-white'
+                  ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Cộng đồng
@@ -186,10 +186,10 @@ export default function AppHeader({ isPublic = false }) {
             <Link
               to="/shop"
               onClick={() => setIsMoreOpen(false)}
-              className={`block px-4 py-2.5 text-sm font-bold rounded-xl transition-colors ${
+              className={`block px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
                 isLinkActive('/shop')
-                  ? 'bg-blue-600 text-white font-extrabold'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-blue-600 hover:text-white'
+                  ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Đổi quà
@@ -278,17 +278,18 @@ export default function AppHeader({ isPublic = false }) {
   );
 
   return (
-    <header className="h-16 shrink-0 bg-white dark:bg-slate-900 border-b-2 border-slate-300 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between z-20 transition-colors">
+    <header className="h-16 shrink-0 bg-white dark:bg-[#151a2e] border-b-2 border-slate-300 dark:border-slate-700 z-20 transition-colors">
+      <div className={`${isPublic ? 'max-w-[1400px]' : ''} mx-auto w-full h-full px-4 sm:px-6 flex items-center justify-between`}>
       {/* ========================================================
           PUBLIC HOME HEADER
           ======================================================== */}
       {isPublic ? (
         <>
           {/* 1. LEFT SECTION: Mascot Logo + Navigation Links */}
-          <div className="flex items-center gap-6 lg:gap-8">
+          <div className="flex items-center gap-8 lg:gap-14">
             <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-              <AppMascot className="w-9 h-9 group-hover:scale-105 transition-transform" />
-              <span className="font-black text-xl text-slate-900 dark:text-white tracking-tight">
+              <AppMascot className="w-8 h-8 group-hover:scale-105 transition-transform" />
+              <span className="font-extrabold text-xl text-slate-800 dark:text-white tracking-tight">
                 EnglishHub
               </span>
             </Link>
@@ -297,17 +298,36 @@ export default function AppHeader({ isPublic = false }) {
           </div>
 
           {/* 2. RIGHT SECTION */}
-          <div className="flex items-center gap-3 sm:gap-4 ml-auto">
+          <div className="flex items-center gap-4 sm:gap-6 ml-auto">
+            {!user && (
+              <div className="flex items-center gap-5 mr-2">
+                <button 
+                  onClick={toggleTheme}
+                  className="text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white transition-colors"
+                >
+                  {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-800 dark:hover:text-white transition-colors">
+                  <div className="w-5 h-3.5 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
+                    <img src="https://flagcdn.com/w40/vn.png" alt="VN" className="w-full h-full object-cover" />
+                  </div>
+                  <span>Tiếng Việt</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            )}
+            
             {user ? (
               <>
                 {/* PRO Pill Button */}
-                <Link
-                  to="/pricing"
+                <button
+                  type="button"
+                  onClick={() => openProModal()}
                   className="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-purple-600 hover:opacity-95 text-white font-extrabold text-xs sm:text-sm shadow-md inline-flex items-center gap-2 transition-transform hover:scale-105 shrink-0 whitespace-nowrap"
                 >
                   <Crown className="w-4 h-4 text-amber-300 fill-amber-300 shrink-0" />
                   <span className="whitespace-nowrap">Mở khóa PRO</span>
-                </Link>
+                </button>
 
                 {/* Bell */}
                 <button 
@@ -331,7 +351,7 @@ export default function AppHeader({ isPublic = false }) {
             ) : (
               <button
                 onClick={openLoginModal}
-                className="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all hover:scale-105"
+                className="font-bold text-sm text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors"
               >
                 Đăng nhập
               </button>
@@ -393,13 +413,13 @@ export default function AppHeader({ isPublic = false }) {
                     </div>
 
                     {/* PRO Badge */}
-                    <Link
-                      to="/pricing"
+                    <button
+                      onClick={() => openProModal()}
                       className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-full px-3.5 py-1 text-xs sm:text-sm font-black shadow-xs transition-transform hover:scale-105 shrink-0 whitespace-nowrap"
                     >
                       <Crown className="w-3.5 h-3.5 text-white fill-white/20 shrink-0" />
                       <span>PRO</span>
-                    </Link>
+                    </button>
 
                     {/* Streak Badge (🔥) */}
                     <div
@@ -416,6 +436,7 @@ export default function AppHeader({ isPublic = false }) {
           </div>
         </>
       )}
+      </div>
     </header>
   );
 }

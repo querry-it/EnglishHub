@@ -1,707 +1,511 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Crown, Sparkles, Headphones, Play, ArrowRight, 
-  Search, Users, Video, Filter, ChevronDown, ArrowLeft,
-  GraduationCap, Clock, CheckCircle2
+  Crown, Sparkles, ArrowRight, Search, Users, Filter, ChevronDown, ArrowLeft,
+  GraduationCap, Clock, CheckCircle2, BookOpen, FolderOpen, Star, PlusCircle, Check, BookMarked, Play, Award, ShieldCheck, CreditCard, Tag
 } from 'lucide-react';
-import StudyModeModal from '../../components/StudyModeModal';
+import { useAuth } from '../../context/AuthContext';
+import PaymentModal from '../../components/PaymentModal';
 
 export default function Courses() {
   const navigate = useNavigate();
+  const { openProModal } = useAuth();
+
+  // User Enrolled / Saved Courses state (pre-populated with 1 enrolled course for instant demo)
+  const [myCourses, setMyCourses] = useState([
+    {
+      id: 'course-ielts-1',
+      title: 'Khóa học IELTS cho người mới bắt đầu (Foundation 4.5+)',
+      description: 'Xây dựng nền tảng từ vựng Academic, ngữ pháp chuyên sâu & kỹ năng nghe nói 4 kỹ năng cơ bản.',
+      category: 'IELTS',
+      targetScore: 'Target 4.5 - 5.5+',
+      levelBadge: 'Cơ bản (A2)',
+      lessonsCount: 36,
+      duration: '24 giờ học',
+      studentsCount: '1,850',
+      rating: 4.9,
+      price: '490.000đ',
+      originalPrice: '990.000đ',
+      discount: '-50%',
+      badgeText: 'NỀN TẢNG',
+      gradient: 'from-blue-600 to-indigo-700'
+    }
+  ]);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Payment Modal state
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedCourseForPayment, setSelectedCourseForPayment] = useState(null);
 
   // Filter States
-  const [activeLevelCategory, setActiveLevelCategory] = useState('advanced'); // 'beginner' | 'advanced'
-  const [selectedTag, setSelectedTag] = useState('#movie');
-  const [viewMode, setViewMode] = useState('category'); // 'category' (all sections) | 'filtered' (topic view with filter bar)
-  
-  // Topic View Filters
-  const [filterSearch, setFilterSearch] = useState('');
-  const [filterDifficulty, setFilterDifficulty] = useState('all'); // 'all' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1'
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'unlearned' | 'in_progress' | 'completed'
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [activeCategoryTab, setActiveCategoryTab] = useState('all'); // 'all' | 'IELTS' | 'TOEIC' | 'GIAO TIẾP' | 'CÔNG SỞ'
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Study Mode Modal state
-  const [selectedLesson, setSelectedLesson] = useState(null);
-  const [isStudyModeOpen, setIsStudyModeOpen] = useState(false);
-
-  const topicTags = [
-    '#movie', '#daily', '#learning', '#shadowing', '#ielts', '#entertainment',
-    '#toeic', '#kids', '#songs', '#bbc', '#voa', '#toefl', '#science',
-    '#fairy-tale', '#podcast', '#ipa', '#food', '#tutorial', '#news',
-    '#vietnam', '#ted', '#travel', '#animals', '#story', '#business'
-  ];
-
-  // Comprehensive Catalog Dataset matching screenshots
-  const allLessons = [
-    // Movie Clips Category
+  // Comprehensive Catalog of Structured Course Cards with Pricing (No PRO, No video thumbnails)
+  const coursesCatalog = [
+    // ─── IELTS COURSES ──────────────────────────────────────
     {
-      id: 101,
-      title: 'PRINCESS MONONOKE | Official English Trailer',
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=500&q=80',
-      views: '61,160',
-      level: 'A2',
-      duration: '01:04',
-      isPro: true,
-      status: 'unlearned'
+      id: 'course-ielts-1',
+      title: 'Khóa học IELTS cho người mới bắt đầu (Foundation 4.5+)',
+      description: 'Xây dựng nền tảng từ vựng Academic, ngữ pháp chuyên sâu & kỹ năng nghe nói 4 kỹ năng cơ bản.',
+      category: 'IELTS',
+      targetScore: 'Target 4.5 - 5.5+',
+      levelBadge: 'Cơ bản (A2)',
+      lessonsCount: 36,
+      duration: '24 giờ học',
+      studentsCount: '1,850',
+      rating: 4.9,
+      price: '490.000đ',
+      originalPrice: '990.000đ',
+      discount: '-50%',
+      badgeText: 'NỀN TẢNG',
+      gradient: 'from-blue-600 to-indigo-700'
     },
     {
-      id: 102,
-      title: "KIKI'S DELIVERY SERVICE | Official English Trailer",
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=500&q=80',
-      views: '94,855',
-      level: 'B1',
-      duration: '00:50',
-      isPro: false,
-      status: 'unlearned'
+      id: 'course-ielts-2',
+      title: 'Khóa học IELTS Bứt phá Band 6.0 - 6.5+',
+      description: 'Chiến thuật làm bài Listening Section 3 & 4, bài mẫu Speaking Part 2 & 3 và cấu trúc Writing Task 1.',
+      category: 'IELTS',
+      targetScore: 'Target 6.0 - 6.5+',
+      levelBadge: 'Trung cấp (B2)',
+      lessonsCount: 52,
+      duration: '40 giờ học',
+      studentsCount: '2,410',
+      rating: 4.95,
+      price: '790.000đ',
+      originalPrice: '1.490.000đ',
+      discount: '-47%',
+      badgeText: 'BÁN CHẠY',
+      gradient: 'from-indigo-700 to-purple-800'
     },
     {
-      id: 103,
-      title: 'Toy Story Tribute',
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=500&q=80',
-      views: '44,559',
-      level: 'B2',
-      duration: '01:53',
-      isPro: false,
-      status: 'in_progress'
-    },
-    {
-      id: 104,
-      title: 'Stranger Things 5 | Official Trailer | Netflix',
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?auto=format&fit=crop&w=500&q=80',
-      views: '22,249',
-      level: 'B1',
-      duration: '02:55',
-      isPro: true,
-      status: 'unlearned'
-    },
-    {
-      id: 105,
-      title: 'TOM & JERRY - Official Trailer',
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?auto=format&fit=crop&w=500&q=80',
-      views: '21,492',
-      level: 'B2',
-      duration: '02:25',
-      isPro: true,
-      status: 'unlearned'
-    },
-    {
-      id: 106,
-      title: 'Avatar: Fire and Ash | Official Trailer',
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=500&q=80',
-      views: '17,369',
-      level: 'B2',
-      duration: '02:26',
-      isPro: false,
-      status: 'unlearned'
-    },
-    {
-      id: 107,
-      title: 'YOUR NAME English Trailer (2016) Anime Movie',
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=500&q=80',
-      views: '21,760',
-      level: 'B1',
-      duration: '01:47',
-      isPro: false,
-      status: 'completed'
-    },
-    {
-      id: 108,
-      title: 'Suzume Dub Trailer (2023)',
-      category: 'Movie short clip',
-      tag: '#movie',
-      thumbnail: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=500&q=80',
-      views: '15,039',
-      level: 'B1',
-      duration: '02:13',
-      isPro: true,
-      status: 'unlearned'
+      id: 'course-ielts-3',
+      title: 'Khóa học IELTS Cấp tốc Band 7.0+ Chuyên sâu',
+      description: 'Luyện làm chủ 1500+ từ vựng Band 8.0, tư duy lập dàn ý Writing Task 2 & phản xạ Speaking tự nhiên.',
+      category: 'IELTS',
+      targetScore: 'Target 7.0 - 8.0+',
+      levelBadge: 'Nâng cao (C1)',
+      lessonsCount: 48,
+      duration: '38 giờ học',
+      studentsCount: '980',
+      rating: 4.88,
+      price: '1.290.000đ',
+      originalPrice: '2.500.000đ',
+      discount: '-48%',
+      badgeText: 'CAO CẤP',
+      gradient: 'from-purple-800 to-pink-800'
     },
 
-    // Daily Conversation Category
+    // ─── TOEIC COURSES ──────────────────────────────────────
     {
-      id: 201,
-      title: '10 Minute Daily Conversation Practice for Beginners',
-      category: 'Daily English Conversation',
-      tag: '#daily',
-      thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=500&q=80',
-      views: '136,006',
-      level: 'A2',
-      duration: '04:12',
-      isPro: false,
-      status: 'unlearned'
+      id: 'course-toeic-1',
+      title: 'Khóa học TOEIC 500+ Cấp tốc cho người đi làm',
+      description: 'Nắm vững 600 từ vựng TOEIC hay gặp nhất, mẹo tránh bẫy Listening Part 1, 2 & bứt phá Reading Part 5.',
+      category: 'TOEIC',
+      targetScore: 'Target 500 - 650+',
+      levelBadge: 'Sơ cấp (A2-B1)',
+      lessonsCount: 40,
+      duration: '28 giờ học',
+      studentsCount: '3,120',
+      rating: 4.9,
+      price: '390.000đ',
+      originalPrice: '790.000đ',
+      discount: '-50%',
+      badgeText: 'PHỔ BIẾN',
+      gradient: 'from-emerald-600 to-teal-800'
     },
     {
-      id: 202,
-      title: 'Ordering Food at a Restaurant — Real Spoken English',
-      category: 'Daily English Conversation',
-      tag: '#daily',
-      thumbnail: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=500&q=80',
-      views: '47,843',
-      level: 'A2',
-      duration: '02:45',
-      isPro: false,
-      status: 'completed'
-    },
-    {
-      id: 203,
-      title: 'How to Introduce Yourself with Confidence',
-      category: 'Daily English Conversation',
-      tag: '#daily',
-      thumbnail: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80',
-      views: '22,964',
-      level: 'B1',
-      duration: '03:30',
-      isPro: true,
-      status: 'unlearned'
-    },
-    {
-      id: 204,
-      title: 'Talking About Your Daily Routine & Habits',
-      category: 'Daily English Conversation',
-      tag: '#daily',
-      thumbnail: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=500&q=80',
-      views: '37,954',
-      level: 'B1',
-      duration: '02:18',
-      isPro: false,
-      status: 'unlearned'
+      id: 'course-toeic-2',
+      title: 'Khóa học TOEIC Chinh phục 750+ (Listening & Reading)',
+      description: 'Phương pháp nghe chép chính tả TOEIC Part 3, 4, kỹ năng quét nhanh ý chính Part 7 & giải đề thực chiến.',
+      category: 'TOEIC',
+      targetScore: 'Target 750 - 900+',
+      levelBadge: 'Nâng cao (B2)',
+      lessonsCount: 60,
+      duration: '45 giờ học',
+      studentsCount: '1,950',
+      rating: 4.92,
+      price: '690.000đ',
+      originalPrice: '1.290.000đ',
+      discount: '-46%',
+      badgeText: 'CHUYÊN SÂU',
+      gradient: 'from-teal-700 to-cyan-900'
     },
 
-    // Learning & IELTS Category
+    // ─── GIAO TIẾP COURSES ──────────────────────────────────
     {
-      id: 301,
-      title: 'IELTS Speaking Part 2 — Band 9 Sample Answer',
-      category: 'IELTS & Learning',
-      tag: '#ielts',
-      thumbnail: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=500&q=80',
-      views: '88,900',
-      level: 'B2',
-      duration: '05:15',
-      isPro: true,
-      status: 'unlearned'
+      id: 'course-daily-1',
+      title: 'Khóa học Tiếng Anh Giao Tiếp Thực Tế (Everyday English)',
+      description: 'Luyện phản xạ nghe nói tự nhiên theo 50 tình huống đời sống: Du lịch, mua sắm, nhà hàng, kết bạn.',
+      category: 'GIAO TIẾP',
+      targetScore: 'Giao tiếp tự tin',
+      levelBadge: 'Căn bản (A2)',
+      lessonsCount: 42,
+      duration: '30 giờ học',
+      studentsCount: '4,200',
+      rating: 4.96,
+      price: '290.000đ',
+      originalPrice: '590.000đ',
+      discount: '-50%',
+      badgeText: 'ĐỀ XUẤT',
+      gradient: 'from-amber-600 to-orange-700'
     },
     {
-      id: 302,
-      title: 'BBC 6 Minute English — The Future of AI',
-      category: 'BBC & News',
-      tag: '#bbc',
-      thumbnail: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=500&q=80',
-      views: '112,400',
-      level: 'B2',
-      duration: '06:00',
-      isPro: false,
-      status: 'unlearned'
+      id: 'course-daily-2',
+      title: 'Khóa học Chuẩn hóa Phát âm IPA & Phản xạ Shadowing',
+      description: 'Sửa triệt để lỗi nối âm, nuốt âm, trọng âm từ và ngữ điệu tự nhiên chuẩn giọng Anh - Mỹ.',
+      category: 'GIAO TIẾP',
+      targetScore: 'Phát âm chuẩn Mỹ',
+      levelBadge: 'Mọi trình độ',
+      lessonsCount: 30,
+      duration: '20 giờ học',
+      studentsCount: '2,780',
+      rating: 4.91,
+      price: '190.000đ',
+      originalPrice: '390.000đ',
+      discount: '-50%',
+      badgeText: 'NỀN TẢNG',
+      gradient: 'from-sky-600 to-blue-800'
+    },
+
+    // ─── CÔNG SỞ COURSES ─────────────────────────────────────
+    {
+      id: 'course-business-1',
+      title: 'Khóa học Tiếng Anh Công Sở & Phỏng vấn xin việc',
+      description: 'Kỹ năng viết Email thương mại chuẩn mực, thuyết trình báo cáo & 50 câu hỏi phỏng vấn công ty đa quốc gia.',
+      category: 'CÔNG SỞ',
+      targetScore: 'Business Career',
+      levelBadge: 'Trung cấp (B2)',
+      lessonsCount: 35,
+      duration: '25 giờ học',
+      studentsCount: '1,150',
+      rating: 4.87,
+      price: '590.000đ',
+      originalPrice: '1.190.000đ',
+      discount: '-50%',
+      badgeText: 'CÔNG SỞ',
+      gradient: 'from-slate-700 to-slate-900'
     }
   ];
 
-  // Grouped Categories for default view
-  const categoriesGrouped = useMemo(() => {
-    const movieGroup = allLessons.filter(l => l.tag === '#movie');
-    const dailyGroup = allLessons.filter(l => l.tag === '#daily');
-    const ieltsGroup = allLessons.filter(l => l.tag === '#ielts' || l.tag === '#bbc');
-
-    return [
-      { id: 'movie', title: 'Movie short clip', count: '157 bài học', lessons: movieGroup },
-      { id: 'daily', title: 'Daily English Conversation', count: '148 bài học', lessons: dailyGroup },
-      { id: 'learning', title: 'IELTS & Learning Video Clips', count: '92 bài học', lessons: ieltsGroup }
-    ];
-  }, []);
-
-  // Filtered Lessons for Topic/Filter View
-  const filteredLessons = useMemo(() => {
-    return allLessons.filter((lesson) => {
-      // Search Title Filter
-      if (filterSearch.trim() && !lesson.title.toLowerCase().includes(filterSearch.toLowerCase())) {
+  // Filtered Course Catalog
+  const filteredCatalog = useMemo(() => {
+    return coursesCatalog.filter(course => {
+      if (activeCategoryTab !== 'all' && course.category !== activeCategoryTab) {
         return false;
       }
-      // Difficulty Filter
-      if (filterDifficulty !== 'all' && lesson.level !== filterDifficulty) {
+      if (searchQuery.trim() && !course.title.toLowerCase().includes(searchQuery.toLowerCase()) && !course.description.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
-      }
-      // Status Filter
-      if (filterStatus !== 'all' && lesson.status !== filterStatus) {
-        return false;
-      }
-      // Tag Filter (if specific tag chosen in filtered mode)
-      if (selectedTag && selectedTag !== '#movie' && viewMode === 'filtered') {
-        const cleanTag = selectedTag.replace('#', '');
-        const matchTag = lesson.tag.includes(cleanTag) || lesson.category.toLowerCase().includes(cleanTag);
-        if (!matchTag) return false;
       }
       return true;
     });
-  }, [filterSearch, filterDifficulty, filterStatus, selectedTag, viewMode]);
+  }, [activeCategoryTab, searchQuery]);
 
-  const getLevelBadgeColor = (level) => {
-    switch (level) {
-      case 'A1':
-      case 'A2':
-        return 'bg-emerald-500 text-white';
-      case 'B1':
-        return 'bg-blue-600 text-white';
-      case 'B2':
-        return 'bg-purple-600 text-white';
-      case 'C1':
-      case 'C2':
-        return 'bg-rose-600 text-white';
-      default:
-        return 'bg-slate-600 text-white';
+  const handleOpenPayment = (course) => {
+    if (myCourses.some(c => c.id === course.id)) {
+      navigate(`/course-learn/${course.id}`);
+      return;
+    }
+    setSelectedCourseForPayment(course);
+    setIsPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (course) => {
+    if (!myCourses.some(c => c.id === course.id)) {
+      setMyCourses(prev => [...prev, { ...course, progress: 0 }]);
+      setToastMessage(`Thanh toán thành công! Đang chuyển đến phòng học Coursera...`);
+      setTimeout(() => {
+        setToastMessage(null);
+        navigate(`/course-learn/${course.id}`);
+      }, 1200);
     }
   };
 
-  const handleSelectTag = (tag) => {
-    setSelectedTag(tag);
-    setViewMode('filtered');
-  };
-
-  const handleViewCategory = (catTitle) => {
-    setViewMode('filtered');
-  };
-
   return (
-    <div className="space-y-6 w-full pb-16 text-slate-900 dark:text-white">
+    <div className="space-y-8 max-w-7xl mx-auto w-full px-2 sm:px-4 pb-16 text-slate-900 dark:text-white">
 
-      {/* ========================================================================= */}
-      {/* MODE 1: TOPIC FILTERED VIEW (MATCHING SCREENSHOT 1 EXACTLY)               */}
-      {/* ========================================================================= */}
-      {viewMode === 'filtered' ? (
-        <div className="space-y-6 animate-fade-in">
-
-          {/* Top Back Button & Heading Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
-              <button
-                onClick={() => setViewMode('category')}
-                className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Quay lại chủ đề</span>
-              </button>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                {selectedTag === '#movie' ? 'Movie short clip' : selectedTag.replace('#', '').toUpperCase()}
-              </h1>
-            </div>
-
-            <div className="text-xs font-extrabold text-slate-400">
-              Tổng số bài học: <span className="font-mono text-slate-700 dark:text-slate-200">157</span>
-            </div>
-          </div>
-
-          {/* BỘ LỌC FILTER BAR (MATCHING SCREENSHOT 1 EXACTLY) */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              <Filter className="w-4 h-4 text-indigo-600 dark:text-indigo-400 stroke-[2.5]" />
-              <span>BỘ LỌC</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-              {/* Search Input Box */}
-              <div className="md:col-span-6 relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={filterSearch}
-                  onChange={(e) => setFilterSearch(e.target.value)}
-                  placeholder="Tìm kiếm bài học..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 transition-colors"
-                />
-              </div>
-
-              {/* Difficulty Filter Dropdown */}
-              <div className="md:col-span-3 relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 flex items-center gap-1 text-xs">
-                  <GraduationCap className="w-4 h-4 text-indigo-500" />
-                </div>
-                <select
-                  value={filterDifficulty}
-                  onChange={(e) => setFilterDifficulty(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 appearance-none cursor-pointer focus:outline-none focus:border-indigo-600"
-                >
-                  <option value="all">Tất cả độ khó</option>
-                  <option value="A1">Level A1 (Cơ bản)</option>
-                  <option value="A2">Level A2 (Sơ cấp)</option>
-                  <option value="B1">Level B1 (Trung cấp)</option>
-                  <option value="B2">Level B2 (Trung cao cấp)</option>
-                  <option value="C1">Level C1 (Cao cấp)</option>
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-              </div>
-
-              {/* Status Filter Dropdown */}
-              <div className="md:col-span-3 relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 flex items-center gap-1 text-xs">
-                  <Clock className="w-4 h-4 text-indigo-500" />
-                </div>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 appearance-none cursor-pointer focus:outline-none focus:border-indigo-600"
-                >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="unlearned">Chưa học</option>
-                  <option value="in_progress">Đang học</option>
-                  <option value="completed">Đã hoàn thành</option>
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-              </div>
-            </div>
-          </div>
-
-          {/* 4-COLUMN CARDS GRID (MATCHING SCREENSHOT 1 EXACTLY) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {filteredLessons.map((lesson) => (
-              <div
-                key={lesson.id}
-                onClick={() => {
-                  setSelectedLesson(lesson);
-                  setIsStudyModeOpen(true);
-                }}
-                className={`bg-white dark:bg-slate-900 rounded-3xl border-2 overflow-hidden shadow-xs hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 group flex flex-col justify-between cursor-pointer ${
-                  lesson.isPro
-                    ? 'border-amber-400 dark:border-amber-500/80 ring-1 ring-amber-400/30'
-                    : 'border-slate-200 dark:border-slate-800'
-                }`}
-              >
-                {/* Top Thumbnail Image */}
-                <div className="relative aspect-video overflow-hidden bg-slate-950">
-                  <img
-                    src={lesson.thumbnail}
-                    alt={lesson.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                  />
-
-                  {/* Top Badges */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
-                    {lesson.isPro && (
-                      <span className="px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-1 shadow-sm">
-                        <Crown className="w-3 h-3 fill-current text-amber-950" /> PRO
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white font-mono text-[10px] font-bold flex items-center gap-1">
-                      <Headphones className="w-3 h-3 text-indigo-400" />
-                      {lesson.views}
-                    </span>
-                  </div>
-
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className={`px-2.5 py-0.5 rounded-md font-extrabold text-[10px] shadow-sm ${getLevelBadgeColor(lesson.level)}`}>
-                      {lesson.level}
-                    </span>
-                  </div>
-
-                  {/* Play Button Overlay */}
-                  <div className="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-white text-blue-600 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition-transform">
-                      <Play className="w-5 h-5 fill-current ml-0.5" />
-                    </div>
-                  </div>
-
-                  {/* Bottom Image Badges */}
-                  <div className="absolute bottom-2 left-2 z-10">
-                    <span className="px-2 py-0.5 rounded bg-rose-600/90 text-white text-[9px] font-bold">
-                      ▶ Youtube
-                    </span>
-                  </div>
-
-                  <div className="absolute bottom-2 right-2 z-10">
-                    <span className="px-2 py-0.5 rounded bg-black/70 text-white font-mono text-[10px] font-bold">
-                      ⏱ {lesson.duration}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content & Practice Tags Footer */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                  <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug">
-                    {lesson.title}
-                  </h4>
-
-                  {/* Practice Mode Options (Dictation Only - Shadowing removed) */}
-                  <div className="flex items-center justify-start text-xs font-bold text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/listening?mode=dictation&lessonId=${lesson.id}`);
-                      }}
-                      className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
-                    >
-                      Dictation <span className="text-[10px] text-slate-400">⊗</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-xl animate-slide-in font-extrabold text-xs">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
-      ) : (
-
-        /* ========================================================================= */
-        /* MODE 2: MAIN CATEGORY OVERVIEW (MATCHING SCREENSHOT 2 EXACTLY)            */
-        /* ========================================================================= */
-        <>
-          {/* TOP HEADER: Giải thích Phương pháp Nghe chép chính tả */}
-          <div className="text-center py-2 space-y-1">
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Giải thích Phương pháp Nghe chép chính tả
-            </h1>
-            <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
-              Khám phá cách <span className="font-black text-slate-900 dark:text-white">hiệu quả nhất</span> để học và tinh chỉnh <span className="font-black text-slate-900 dark:text-white">kỹ năng nghe tiếng Anh</span>
-            </p>
-          </div>
-
-          {/* 1. TOP AI YOUTUBE CONVERTER BANNER */}
-          <div className="bg-[#F8FAFC] dark:bg-slate-900 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 space-y-4 shadow-xs">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                </svg>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white">
-                  Tạo bài học từ video YouTube
-                </h2>
-                <span className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-extrabold text-[11px] flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-indigo-500" /> AI
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-black text-[11px] flex items-center gap-1 shadow-xs">
-                  <Crown className="w-3 h-3 text-amber-300 fill-current" /> PRO
-                </span>
-              </div>
-            </div>
-            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium pl-0.5">
-              Dán link video tiếng Anh, AI sẽ tự tạo transcript và phân loại cấp độ cho bạn.
-            </p>
-
-            {/* Input & Create Button Row */}
-            <div className="flex flex-col md:flex-row items-center gap-3 pt-1">
-              <div className="relative flex-1 w-full">
-                <Video className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Dán link YouTube vào đây..."
-                  value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 shadow-2xs"
-                />
-              </div>
-              <button className="w-full md:w-auto px-6 py-3 rounded-2xl bg-[#1E2540] dark:bg-indigo-600 hover:bg-[#151a2e] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shrink-0 transition-transform active:scale-98">
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>TẠO BÀI HỌC</span>
-              </button>
-            </div>
-
-            {/* Bottom Subtext & Nav Action Pills */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-200/80 dark:border-slate-800">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Nâng cấp Pro để biến video YouTube thành bài học.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  to="/listening"
-                  className="px-4 py-2 rounded-2xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs flex items-center gap-1.5 hover:bg-slate-50 shadow-2xs"
-                >
-                  <Video className="w-4 h-4 text-rose-500" /> Kênh YouTube
-                </Link>
-                <Link
-                  to="/about"
-                  className="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-emerald-500/20 transition-all"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>KHÁM PHÁ BÀI HỌC CỘNG ĐỒNG</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. HEADING & TOPIC TAG FILTERS (MATCHING SCREENSHOT 2 EXACTLY) */}
-          <div className="space-y-4">
-            <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Luyện Shadowing và dictation qua video đa dạng chủ đề
-            </h1>
-
-            {/* Filters Row */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Level Filter Pills */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={() => setActiveLevelCategory('beginner')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                    activeLevelCategory === 'beginner'
-                      ? 'bg-[#1E2540] text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-300 font-bold hover:text-slate-900'
-                  }`}
-                >
-                  Người mới bắt đầu
-                </button>
-                <button
-                  onClick={() => setActiveLevelCategory('advanced')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                    activeLevelCategory === 'advanced'
-                      ? 'bg-[#1E2540] text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-300 font-bold hover:text-slate-900'
-                  }`}
-                >
-                  Nâng cao
-                </button>
-              </div>
-
-              {/* Topic Hashtag Pills */}
-              {topicTags.map((tag, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectTag(tag)}
-                  className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold transition-all border ${
-                    selectedTag === tag
-                      ? 'bg-[#1E2540] text-white border-[#1E2540] dark:bg-indigo-600 dark:border-indigo-600 shadow-xs'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. CATEGORIES & LESSON CARDS GRID */}
-          <div className="space-y-10">
-            {categoriesGrouped.map((cat) => (
-              <div key={cat.id} className="space-y-4">
-
-                {/* Category Header Row */}
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-6 bg-[#1E2540] dark:bg-indigo-500 rounded-full" />
-                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                      {cat.title}
-                      <span className="text-xs font-bold text-slate-400">({cat.count})</span>
-                    </h3>
-                  </div>
-
-                  <button
-                    onClick={() => handleViewCategory(cat.title)}
-                    className="px-4 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-extrabold text-xs border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    XEM TẤT CẢ &gt;
-                  </button>
-                </div>
-
-                {/* 4-Column Lesson Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {cat.lessons.map((lesson) => (
-                    <div
-                      key={lesson.id}
-                      onClick={() => {
-                        setSelectedLesson(lesson);
-                        setIsStudyModeOpen(true);
-                      }}
-                      className={`bg-white dark:bg-slate-900 rounded-3xl border-2 overflow-hidden shadow-xs hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 group flex flex-col justify-between cursor-pointer ${
-                        lesson.isPro
-                          ? 'border-amber-400 dark:border-amber-500/80 ring-1 ring-amber-400/30'
-                          : 'border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      {/* Top Image Container */}
-                      <div className="relative aspect-video overflow-hidden bg-slate-950">
-                        <img
-                          src={lesson.thumbnail}
-                          alt={lesson.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-
-                        {/* Top Badges */}
-                        <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
-                          {lesson.isPro && (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-1 shadow-sm">
-                              <Crown className="w-3 h-3 fill-current text-amber-950" /> PRO
-                            </span>
-                          )}
-                          <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white font-mono text-[10px] font-bold flex items-center gap-1">
-                            <Headphones className="w-3 h-3 text-indigo-400" />
-                            {lesson.views}
-                          </span>
-                        </div>
-
-                        <div className="absolute top-2 right-2 z-10">
-                          <span className={`px-2.5 py-0.5 rounded-md font-extrabold text-[10px] shadow-sm ${getLevelBadgeColor(lesson.level)}`}>
-                            {lesson.level}
-                          </span>
-                        </div>
-
-                        {/* Play Button Overlay */}
-                        <div className="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-full bg-white text-blue-600 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition-transform">
-                            <Play className="w-5 h-5 fill-current ml-0.5" />
-                          </div>
-                        </div>
-
-                        {/* Bottom Image Badges */}
-                        <div className="absolute bottom-2 left-2 z-10">
-                          <span className="px-2 py-0.5 rounded bg-rose-600/90 text-white text-[9px] font-bold">
-                            ▶ Youtube
-                          </span>
-                        </div>
-
-                        <div className="absolute bottom-2 right-2 z-10">
-                          <span className="px-2 py-0.5 rounded bg-black/70 text-white font-mono text-[10px] font-bold">
-                            ⏱ {lesson.duration}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Content & Practice Tags Footer */}
-                      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                        <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug">
-                          {lesson.title}
-                        </h4>
-
-                        {/* Practice Mode Options (Dictation Only - Shadowing removed) */}
-                        <div className="flex items-center justify-start text-xs font-bold text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/listening?mode=dictation&lessonId=${lesson.id}`);
-                            }}
-                            className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
-                          >
-                            Dictation <span className="text-[10px] text-slate-400">⊗</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-              </div>
-            ))}
-          </div>
-        </>
       )}
 
-      {/* Study Mode Selection Modal */}
-      <StudyModeModal
-        isOpen={isStudyModeOpen}
-        onClose={() => setIsStudyModeOpen(false)}
-        lesson={selectedLesson}
+      {/* Course Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        selectedPlan={selectedCourseForPayment}
+        onSuccess={handlePaymentSuccess}
       />
+
+      {/* Page Header Title */}
+      <div className="text-center py-2 space-y-1">
+        <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          Quản Lý & Khám Phá Khóa Học Tiếng Anh
+        </h1>
+        <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Theo dõi khóa học cá nhân và lựa chọn các khóa học lộ trình bài bản IELTS, TOEIC & Giao tiếp
+        </p>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 1: KHÓA HỌC CỦA TÔI (MY COURSES)                                  */}
+      {/* ========================================================================= */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-1">
+          <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <BookMarked className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <span>Khóa học của tôi</span>
+            <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+              {myCourses.length}
+            </span>
+          </h2>
+        </div>
+
+        {myCourses.length === 0 ? (
+          /* EMPTY STATE BANNER WHEN USER HAS NO ENROLLED COURSES YET */
+          <div className="p-8 md:p-12 rounded-3xl bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 text-center space-y-3 shadow-xs">
+            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+              <FolderOpen className="w-8 h-8 stroke-[1.5]" />
+            </div>
+            <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+              Chưa có khóa học nào
+            </h3>
+            <p className="text-xs font-semibold text-slate-400 max-w-md mx-auto leading-relaxed">
+              Bạn chưa tham gia hoặc sở hữu khóa học nào. Hãy chọn mua khóa học IELTS, TOEIC hoặc Giao tiếp từ danh sách gợi ý bên dưới để tham gia bài học nhé!
+            </p>
+          </div>
+        ) : (
+          /* MY ENROLLED COURSES GRID */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {myCourses.map((course) => (
+              <div 
+                key={course.id}
+                className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-indigo-500/30 dark:border-indigo-500/40 p-5 shadow-sm space-y-4 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-extrabold text-xs">
+                      {course.category}
+                    </span>
+                  </div>
+
+                  <h3 className="font-black text-base text-slate-900 dark:text-white leading-snug">
+                    {course.title}
+                  </h3>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between text-xs font-extrabold text-slate-500 dark:text-slate-400">
+                      <span>Tiến độ học</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">0 / {course.lessonsCount} bài</span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-indigo-600 h-full rounded-full w-[5%]" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-400">
+                    ⏱ {course.duration}
+                  </span>
+                  <button
+                    onClick={() => navigate(`/course-learn/${course.id}`)}
+                    className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/30 active:scale-95"
+                  >
+                    <span>VÀO HỌC NGAY</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 2: GỢI Ý KHÓA HỌC (SUGGESTED COURSES WITH PRICING & PAYMENT)      */}
+      {/* ========================================================================= */}
+      <div className="space-y-6 pt-2">
+        
+        {/* Section Header */}
+        <div className="pb-2">
+          <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-amber-500 fill-amber-500/20" />
+            <span>Gợi ý khóa học</span>
+          </h2>
+        </div>
+
+        {/* Category Filter Pills (IELTS, TOEIC, Giao Tiếp, Công Sở) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setActiveCategoryTab('all')}
+            className={`px-4 py-2 rounded-2xl font-black text-xs transition-all ${
+              activeCategoryTab === 'all'
+                ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+            }`}
+          >
+            TẤT CẢ KHÓA HỌC
+          </button>
+          <button
+            onClick={() => setActiveCategoryTab('IELTS')}
+            className={`px-4 py-2 rounded-2xl font-black text-xs transition-all flex items-center gap-1.5 ${
+              activeCategoryTab === 'IELTS'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            KHÓA HỌC IELTS
+          </button>
+          <button
+            onClick={() => setActiveCategoryTab('TOEIC')}
+            className={`px-4 py-2 rounded-2xl font-black text-xs transition-all flex items-center gap-1.5 ${
+              activeCategoryTab === 'TOEIC'
+                ? 'bg-teal-600 text-white shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            KHÓA HỌC TOEIC
+          </button>
+          <button
+            onClick={() => setActiveCategoryTab('GIAO TIẾP')}
+            className={`px-4 py-2 rounded-2xl font-black text-xs transition-all flex items-center gap-1.5 ${
+              activeCategoryTab === 'GIAO TIẾP'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            TIẾNG ANH GIAO TIẾP
+          </button>
+          <button
+            onClick={() => setActiveCategoryTab('CÔNG SỞ')}
+            className={`px-4 py-2 rounded-2xl font-black text-xs transition-all flex items-center gap-1.5 ${
+              activeCategoryTab === 'CÔNG SỞ'
+                ? 'bg-slate-800 text-white shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            TIẾNG ANH CÔNG SỞ
+          </button>
+        </div>
+
+        {/* Course Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCatalog.map((course) => (
+            <div 
+              key={course.id}
+              className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+            >
+              {/* Course Top Gradient Header Banner */}
+              <div className={`p-5 bg-gradient-to-r ${course.gradient} text-white space-y-3 relative overflow-hidden`}>
+                <div className="flex items-center justify-between z-10 relative">
+                  <span className="px-2.5 py-1 rounded-xl bg-white/20 backdrop-blur-md text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1 border border-white/20">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    {course.category}
+                  </span>
+
+                  <span className="px-2.5 py-1 rounded-xl bg-white/30 backdrop-blur-md text-white font-black text-[10px] shadow-sm">
+                    {course.badgeText}
+                  </span>
+                </div>
+
+                {/* Target Score Tag */}
+                <div className="z-10 relative pt-1">
+                  <span className="inline-block px-3 py-1 rounded-xl bg-black/30 backdrop-blur-md text-amber-300 font-mono font-black text-xs border border-white/10">
+                    🎯 {course.targetScore}
+                  </span>
+                </div>
+              </div>
+
+              {/* Course Body Content */}
+              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400">
+                    <span>Trình độ: {course.levelBadge}</span>
+                  </div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-snug group-hover:text-indigo-600 transition-colors">
+                    {course.title}
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    {course.description}
+                  </p>
+                </div>
+
+                {/* Course Meta Info & Price */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-indigo-500" /> {course.lessonsCount} bài học
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-sky-500" /> {course.duration}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-emerald-500" /> {course.studentsCount} học viên
+                    </span>
+                    <span className="flex items-center gap-1.5 text-amber-500 font-extrabold">
+                      <Star className="w-3.5 h-3.5 fill-current" /> {course.rating} / 5.0
+                    </span>
+                  </div>
+
+                  {/* Price Row */}
+                  <div className="flex items-baseline justify-between pt-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-black text-slate-900 dark:text-white">{course.price}</span>
+                      <span className="text-xs font-bold text-slate-400 line-through">{course.originalPrice}</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 font-extrabold text-xs">
+                      {course.discount}
+                    </span>
+                  </div>
+
+                  {/* Buy / Study Action Button */}
+                  <div className="flex gap-2">
+                    {myCourses.some(c => c.id === course.id) ? (
+                      <button
+                        onClick={() => navigate(`/course-learn/${course.id}`)}
+                        className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>ĐÃ SỞ HỮU (VÀO HỌC)</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => navigate(`/course-learn/${course.id}`)}
+                          className="px-3.5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs flex items-center justify-center gap-1 shrink-0 transition-all"
+                          title="Học thử không cần mua"
+                        >
+                          <Play className="w-3.5 h-3.5 text-indigo-500 fill-current" />
+                          <span>Học thử</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenPayment(course)}
+                          className="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 transition-all active:scale-95"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          <span>THANH TOÁN MUA</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </div>
+
     </div>
   );
 }

@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, BookOpen, Headphones, Repeat, FileText, Mic,
   ClipboardList, GraduationCap, Gamepad2, Video, Brain,
   MessageSquare, MessageCircle, Trophy, ChevronDown, LogOut, Crown, FileEdit, LogIn, ShoppingBag, Gift,
   ChevronsLeft, ChevronsRight, LayoutDashboard, PlusCircle, CheckSquare, Users, ArrowLeft,
-  Bell, Activity, ShieldCheck, User, Settings, MoreVertical
+  Bell, Activity, ShieldCheck, User, Settings, MoreVertical, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AppMascot from './AppMascot';
@@ -16,15 +16,16 @@ const STUDENT_SECTIONS = [
   {
     label: null,
     items: [
-      { label: 'Trang chủ',       icon: Home,          path: '/dashboard' },
-      { label: 'Chủ đề',          icon: BookOpen,       path: '/courses' },
-      { label: 'Luyện nghe',      icon: Headphones,     path: '/listening' },
-      { label: 'Từ vựng',         icon: FileText,       path: '/vocabulary' },
-      { label: 'Luyện nói',       icon: Mic,            path: '/speaking' },
-      { label: 'Luyện thi TOEIC', icon: ClipboardList,  path: '/exams?type=toeic' },
-      { label: 'Luyện thi IELTS', icon: GraduationCap,  path: '/exams?type=ielts' },
-      { label: 'Trò Chơi',        icon: Gamepad2,       path: '/games' },
-      { label: 'Ôn tập',          icon: Brain,          path: '/workspace', badgeCount: 2 },
+      { label: 'Trang chủ',          icon: Home,          path: '/dashboard' },
+      { label: 'Chủ đề',             icon: BookOpen,      path: '/topics' },
+      { label: 'Luyện nghe',         icon: Headphones,    path: '/listening' },
+      { label: 'Từ vựng',            icon: FileText,      path: '/vocabulary' },
+      { label: 'Luyện nói',          icon: Mic,           path: '/speaking' },
+      { label: 'Luyện thi TOEIC',    icon: ClipboardList, path: '/exams?type=toeic' },
+      { label: 'Luyện thi IELTS',    icon: GraduationCap, path: '/exams?type=ielts' },
+      { label: 'Trò Chơi',           icon: Gamepad2,      path: '/games' },
+      { label: 'Ôn tập',             icon: Brain,         path: '/workspace', badgeCount: 2 },
+      { label: 'Quản lý khóa học',   icon: BookOpen,      path: '/courses' },
     ],
   },
   {
@@ -46,7 +47,6 @@ const INSTRUCTOR_SECTIONS = [
       { label: 'Trang chủ',            icon: Home,            path: '/instructor' },
       { label: 'Khóa học của tôi',     icon: BookOpen,        path: '/instructor/courses' },
       { label: 'Soạn bài học mới',     icon: PlusCircle,      path: '/instructor/create-lesson' },
-      { label: 'Hỗ trợ 1-1 PRO',       icon: CheckSquare,     path: '/instructor/grading', badge: 'PRO' },
       { label: 'Danh sách học viên',   icon: Users,           path: '/instructor/students' },
     ],
   },
@@ -56,9 +56,11 @@ const ADMIN_SECTIONS = [
   {
     label: null,
     items: [
-      { label: 'Dashboard Admin',      icon: LayoutDashboard, path: '/admin' },
-      { label: 'Quản lý Users',        icon: Users,           path: '/admin/users' },
+      { label: 'Trang chủ',            icon: LayoutDashboard, path: '/admin' },
+      { label: 'Quản lý Học viên',     icon: Users,           path: '/admin/users' },
+      { label: 'Quản lý Giảng viên',   icon: GraduationCap,   path: '/admin/instructors' },
       { label: 'Quản lý Khóa học',     icon: BookOpen,        path: '/admin/courses' },
+      { label: 'Quản lý Bài học',      icon: ClipboardList,   path: '/admin/lessons' },
       { label: 'Quản lý Blog',         icon: FileText,        path: '/admin/blog' },
       { label: 'Thông báo',            icon: Bell,            path: '/admin/notifications' },
       { label: 'Nhật ký logs',         icon: Activity,        path: '/admin/logs' },
@@ -73,10 +75,13 @@ function useNavActive() {
   return (itemPath) => {
     const full = location.pathname + location.search;
     if (full === itemPath) return true;
-    if (itemPath === '/dashboard' && location.pathname === '/dashboard') return true;
+    if (itemPath === '/dashboard') return location.pathname === '/dashboard';
+    if (itemPath === '/admin') return location.pathname === '/admin';
+    if (itemPath === '/instructor') return location.pathname === '/instructor';
+    
     const [base, qs] = itemPath.split('?');
     if (qs) return location.pathname === base && location.search.includes(qs);
-    if (itemPath !== '/dashboard' && itemPath !== '/') {
+    if (itemPath !== '/' && itemPath !== '/dashboard' && itemPath !== '/admin' && itemPath !== '/instructor') {
       return location.pathname === base || location.pathname.startsWith(base + '/');
     }
     return false;
@@ -124,7 +129,8 @@ function NavLink({ item, collapsed, isActive }) {
 
 export default function AppSidebar({ collapsed, setCollapsed }) {
   const location = useLocation();
-  const { user, openLoginModal, logout } = useAuth();
+  const navigate = useNavigate();
+  const { user, openLoginModal, logout, handleProUpgrade , openProModal } = useAuth();
   const [showMore, setShowMore] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
@@ -185,7 +191,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
             <nav className="space-y-1">
               {section.items.map((item) => (
                 <NavLink
-                  key={item.path}
+                  key={item.label + item.path}
                   item={item}
                   collapsed={collapsed}
                   activeColor={activeColor}
@@ -197,16 +203,17 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
           </div>
         ))}
 
-        {/* PRO banner — chỉ hiện khi đã đăng nhập và ở student mode */}
-        {user && !isSpecialPortal && !collapsed && (
+        {/* PRO banner — hiển thị nút MỞ KHÓA PRO */}
+        {!isSpecialPortal && !collapsed && (
           <div className="pt-3">
-            <Link
-              to="/courses"
+            <button
+              type="button"
+              onClick={() => openProModal()}
               className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-400 via-blue-600 to-purple-600 hover:opacity-95 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 border-2 border-indigo-900/30 transition-all active:scale-98"
             >
               <Crown className="w-4 h-4 text-amber-300 fill-current shrink-0" />
               <span>MỞ KHÓA PRO</span>
-            </Link>
+            </button>
           </div>
         )}
       </div>

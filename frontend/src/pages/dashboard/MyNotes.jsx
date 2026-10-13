@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export default function MyNotes() {
-  const { user } = useAuth();
+  const { user, openProModal } = useAuth();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -95,13 +95,13 @@ export default function MyNotes() {
               <span>Gói miễn phí: bạn được lưu tối đa 100 ghi chú. Nâng cấp Premium để lưu lên đến 5000 ghi chú.</span>
             </div>
 
-            <Link
-              to="/pricing"
+            <button
+              onClick={openProModal}
               className="px-5 py-2.5 rounded-2xl bg-[#1E2540] dark:bg-indigo-600 hover:bg-[#151a2e] text-white font-black text-xs uppercase tracking-wider shadow-md transition-transform active:scale-98 shrink-0 flex items-center gap-1.5 self-end sm:self-auto"
             >
               <Crown className="w-4 h-4 text-amber-300 fill-current" />
               <span>NÂNG CẤP</span>
-            </Link>
+            </button>
           </div>
 
           {/* Search Filter Box */}

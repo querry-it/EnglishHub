@@ -3,17 +3,55 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
   Headphones, Play, Search, Globe, Sparkles, Crown, 
   Video, ChevronRight, Eye, Clock, Check, Users, ArrowRight,
-  MessageSquare, Film, Tv, ExternalLink, User, Zap
+  MessageSquare, Film, Tv, ExternalLink, User, Zap, X
 } from 'lucide-react';
 import DictationStudio from '../../components/DictationStudio';
 import ShadowingStudio from '../../components/ShadowingStudio';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import { useAuth } from '../../context/AuthContext';
+
+function LimitPopup({ isOpen, onClose }) {
+  const { openProModal } = useAuth();
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl w-full max-w-sm border-2 border-slate-200 dark:border-slate-800 shadow-2xl relative text-center">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+           <X className="w-5 h-5" />
+        </button>
+        <div className="w-16 h-16 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4 shadow-sm">
+           <Crown className="w-8 h-8 fill-current" />
+        </div>
+        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Đã đạt giới hạn</h3>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+          Bạn đã tạo tối đa 3 bài học miễn phí. Vui lòng nâng cấp lên tài khoản PRO để tạo không giới hạn bài học từ video YouTube!
+        </p>
+        <button 
+          onClick={() => {
+            onClose();
+            openProModal();
+          }}
+          className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-amber-950 font-black text-sm uppercase tracking-wider shadow-lg transition-transform active:scale-98 mb-3"
+        >
+          Nâng cấp PRO ngay
+        </button>
+        <button onClick={onClose} className="w-full py-3 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 transition-colors">
+          Để sau
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Listening() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'dictation';
   const lessonId = searchParams.get('lessonId');
+
+  const { user , openProModal } = useAuth();
+  const [customLessonCount, setCustomLessonCount] = useState(() => parseInt(localStorage.getItem('customLessonCount') || '0', 10));
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [selectedTag, setSelectedTag] = useState('Nâng cao');
@@ -153,6 +191,12 @@ export default function Listening() {
 
   const handleCreateCustomLesson = () => {
     if (!youtubeUrl.trim()) return;
+
+    if (!user?.isPro && customLessonCount >= 3) {
+      setShowLimitPopup(true);
+      return;
+    }
+
     const newLesson = {
       id: Date.now(),
       title: 'YouTube AI Audio Transcript Lesson',
@@ -165,6 +209,12 @@ export default function Listening() {
     };
     setCustomLesson(newLesson);
     setSearchParams({ mode: 'dictation', lessonId: newLesson.id });
+
+    setCustomLessonCount(prev => {
+      const next = prev + 1;
+      localStorage.setItem('customLessonCount', next.toString());
+      return next;
+    });
   };
 
   const activeLesson = customLesson || [...movieLessons, ...dailyLessons].find(l => String(l.id) === String(lessonId)) || movieLessons[0];
@@ -172,15 +222,23 @@ export default function Listening() {
   const renderCard = (lesson) => (
     <div 
       key={lesson.id}
-      onClick={() => setSearchParams({ mode: 'dictation', lessonId: lesson.id })}
-      className={`group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col cursor-pointer border-2 ${
+      className={`group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col border-2 ${
         lesson.isPro 
           ? 'border-amber-400 dark:border-amber-500 shadow-md shadow-amber-500/10' 
           : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400'
       }`}
     >
       {/* Thumbnail Area */}
-      <div className="relative aspect-video overflow-hidden bg-slate-950">
+      <div 
+        onClick={() => {
+          if (lesson.isPro) {
+            openProModal();
+            return;
+          }
+          setSearchParams({ mode: 'dictation', lessonId: lesson.id });
+        }}
+        className="relative aspect-video overflow-hidden bg-slate-950 cursor-pointer"
+      >
         <img 
           src={lesson.thumbnail} 
           alt={lesson.title} 
@@ -223,14 +281,39 @@ export default function Listening() {
 
       {/* Card Info */}
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white dark:bg-slate-900">
-        <h4 className="font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+        <h4 
+          onClick={() => {
+            if (lesson.isPro) {
+              openProModal();
+              return;
+            }
+            setSearchParams({ mode: 'dictation', lessonId: lesson.id });
+          }}
+          className="font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer"
+        >
           {lesson.title}
         </h4>
         
-        <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
-          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
-            {lesson.tag || 'Dictation'} <span className="text-slate-400 text-[9px]">&otimes;</span>
-          </span>
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <button 
+            onClick={() => {
+              if (lesson.isPro) { openProModal(); return; }
+              setSearchParams({ mode: 'dictation', lessonId: lesson.id });
+            }}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
+          >
+            Dictation <span className="text-slate-400 text-[10px]">⊗</span>
+          </button>
+          
+          <button 
+            onClick={() => {
+              if (lesson.isPro) { openProModal(); return; }
+              setSearchParams({ mode: 'shadowing', lessonId: lesson.id });
+            }}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
+          >
+            Shadowing <span className="text-slate-400 text-[10px]">⊗</span>
+          </button>
         </div>
       </div>
     </div>
@@ -238,6 +321,7 @@ export default function Listening() {
 
   return (
     <div className="w-full min-h-screen pb-12">
+        <LimitPopup isOpen={showLimitPopup} onClose={() => setShowLimitPopup(false)} />
         {lessonId ? (
           <ErrorBoundary>
             {mode === 'shadowing' ? (
@@ -247,19 +331,9 @@ export default function Listening() {
             )}
           </ErrorBoundary>
         ) : (
-          <div className="space-y-8 max-w-7xl mx-auto w-full px-2 sm:px-4">
+          <div className="space-y-8 max-w-7xl mx-auto w-full px-2 sm:px-4 pt-2">
 
-            {/* 1. TOP HEADER & EXPLANATION */}
-            <div className="text-center space-y-2 py-4">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                Giải thích Phương pháp Nghe chép chính tả
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold max-w-2xl mx-auto">
-                Khám phá cách <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">hiệu quả nhất</span> để học và tinh chỉnh <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">kỹ năng nghe tiếng Anh</span>
-              </p>
-            </div>
-
-            {/* 2. AI YOUTUBE CONVERTER CARD */}
+            {/* 1. AI YOUTUBE CONVERTER CARD */}
             <div className="p-5 sm:p-7 rounded-3xl bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 space-y-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-600/20">
@@ -287,7 +361,7 @@ export default function Listening() {
                 <div className="relative flex-1">
                   <input
                     type="text"
-                    placeholder="📋 Dán link YouTube vào đây..."
+                    placeholder="Dán link YouTube vào đây..."
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                     className="w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 shadow-xs"
@@ -305,6 +379,11 @@ export default function Listening() {
               {/* Sub Action Buttons underneath input */}
               <div className="flex items-center gap-3 flex-wrap pt-2">
                 <button className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-2 transition-colors shadow-2xs">
+                  <Headphones className="w-4 h-4 text-sky-500" />
+                  <span>Nghe thụ động</span>
+                </button>
+
+                <button className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-2 transition-colors shadow-2xs">
                   <Tv className="w-4 h-4 text-rose-500" />
                   <span>Kênh YouTube</span>
                 </button>
@@ -320,7 +399,7 @@ export default function Listening() {
               </div>
             </div>
 
-            {/* 3. TAGS & TOPICS FILTER BAR */}
+            {/* 2. TAGS & TOPICS FILTER BAR */}
             <div className="space-y-3">
               <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
                 Luyện Shadowing và dictation qua video đa dạng chủ đề
@@ -348,7 +427,7 @@ export default function Listening() {
               </div>
             </div>
 
-            {/* 4. SECTION 1: MOVIE SHORT CLIP */}
+            {/* 3. SECTION 1: MOVIE SHORT CLIP */}
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -369,13 +448,13 @@ export default function Listening() {
               </div>
             </div>
 
-            {/* 5. SECTION 2: DAILY CONVERSATION */}
+            {/* 4. SECTION 2: DAILY CONVERSATION */}
             <div className="space-y-4 pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-6 rounded-full bg-emerald-500" />
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    Daily Conversation <span className="text-xs font-bold text-slate-400 dark:text-slate-500">(84 bài học)</span>
+                    Daily English Conversation <span className="text-xs font-bold text-slate-400 dark:text-slate-500">(148 bài học)</span>
                   </h2>
                 </div>
 

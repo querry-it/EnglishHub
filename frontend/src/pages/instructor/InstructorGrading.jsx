@@ -160,34 +160,72 @@ export default function InstructorGrading() {
           <form onSubmit={handleSendFeedback} className="space-y-4">
             {sentSuccess && (
               <div className="p-4 rounded-2xl bg-emerald-500 text-white font-black text-xs text-center shadow-md animate-fade-in">
-                ✅ Đã gửi lời nhận xét & điểm số trực tiếp cho học viên {selectedStudent.studentName}!
+                ✅ Đã gửi lời nhận xét Voice & điểm số 1-1 trực tiếp cho học viên {selectedStudent.studentName}!
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="sm:col-span-3 space-y-1.5">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
                 <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block">
-                  Nhận xét & Hướng dẫn chỉnh sửa phát âm
+                  Nhận xét & Hướng dẫn chỉnh sửa 1-1
                 </label>
-                <textarea
-                  rows={4}
-                  required
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Nhập nhận xét chi tiết giúp học viên sửa âm sai..."
-                  className="w-full p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 resize-none"
+                {/* Voice Record button */}
+                <button
+                  type="button"
+                  onClick={() => alert("Đang thu âm voice feedback cho học viên... 🔴 (Nhấn lại để hoàn thành)")}
+                  className="px-3.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 font-extrabold text-xs flex items-center gap-1.5 hover:bg-rose-100 transition-colors shadow-2xs"
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>Thu âm Voice Feedback</span>
+                </button>
+              </div>
+
+              <textarea
+                rows={3}
+                required
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder="Nhập nhận xét chi tiết giúp học viên sửa âm sai hoặc thắc mắc..."
+                className="w-full p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 resize-none"
+              />
+            </div>
+
+            {/* 4 Criteria Scores */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 block">Phát âm (Pronun)</label>
+                <input
+                  type="text"
+                  defaultValue="8.5"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-black font-mono text-indigo-600 dark:text-indigo-400 text-center"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block">
-                  Cho điểm (Scale 10)
-                </label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 block">Trôi chảy (Fluency)</label>
+                <input
+                  type="text"
+                  defaultValue="9.0"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-black font-mono text-indigo-600 dark:text-indigo-400 text-center"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 block">Từ vựng (Lexical)</label>
+                <input
+                  type="text"
+                  defaultValue="8.0"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-black font-mono text-indigo-600 dark:text-indigo-400 text-center"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 block">Tổng Điểm (Overall)</label>
                 <input
                   type="text"
                   value={score}
                   onChange={(e) => setScore(e.target.value)}
-                  className="w-full p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-sm font-black font-mono text-indigo-600 dark:text-indigo-400 focus:outline-none focus:border-indigo-600 text-center"
+                  className="w-full p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950 border-2 border-indigo-500 text-xs font-black font-mono text-indigo-600 dark:text-indigo-400 text-center"
                 />
               </div>
             </div>

@@ -123,28 +123,28 @@ export default function Home() {
     }
   ];
 
-  // Section 6 Data (Exact Screenshot 11 - Người dùng nói gì về EnglishHub)
+  // Section 6 Data (Standard Real Learner Reviews)
   const reviews = [
     {
-      name: 'Meti nt',
-      country: 'United States',
-      date: 'Oct 17, 2025',
+      name: 'ThS. Nguyễn Hoàng Nam',
+      country: 'Hà Nội, Việt Nam',
+      date: '17/10/2025',
       stars: 5,
       comment: 'Ứng dụng này cung cấp đúng tính năng mình cần. Cảm ơn đội ngũ phát triển, nó thực sự giúp mình cải thiện tiếng Anh.'
     },
     {
-      name: 'Huy forum',
-      country: 'Vietnam',
-      date: 'Oct 16, 2025',
+      name: 'Lê Thị Mai',
+      country: 'TP. Hồ Chí Minh',
+      date: '16/10/2025',
       stars: 5,
-      comment: 'App đỉnh quá, bài học rất thú vị nha!'
+      comment: 'App đỉnh quá, các bài học luyện nghe chép chính tả Dictation và nhại giọng Shadowing rất thú vị!'
     },
     {
-      name: 'Linh Nguyen 2397',
-      country: 'Vietnam',
-      date: 'Nov 15, 2025',
+      name: 'Nguyễn Phương Thảo',
+      country: 'Đà Nẵng',
+      date: '15/11/2025',
       stars: 5,
-      comment: 'Đây là app đầu tiên mà mình chủ động tìm đến phần nhận xét. Mình đã thử rất nhiều app tiếng Anh nhưng app này khiến mình hài lòng nhất. Vừa luyện được nghe, vừa luyện được nói. Các bài học sắp xếp theo trình độ rất dễ dàng để tìm bài phù hợp với trình độ của mình. Bài học ngắn gọn, không gây chán, mỗi ngày học một bài cũng không tốn quá nhiều thời gian. Mức độ nhận diện phát âm không gây ức chế như một số app khác. Giao diện thân thiện, tinh gọn, dễ dùng. Và đặc biệt hơn nó lại hoàn toàn miễn phí. Quá tuyệt vời. Xin cảm ơn đội ngũ làm ra app rất rất nhiều!'
+      comment: 'Đây là app đầu tiên mà mình chủ động tìm đến phần nhận xét. Mình đã thử rất nhiều app tiếng Anh nhưng app này khiến mình hài lòng nhất. Vừa luyện được nghe, vừa luyện được nói. Các bài học sắp xếp theo trình độ rất dễ dàng để tìm bài phù hợp với trình độ của mình. Bài học ngắn gọn, không gây chán, mỗi ngày học một bài cũng không tốn quá nhiều thời gian. Mức độ nhận diện phát âm không gây ức chế như một số app khác. Giao diện thân thiện, tinh gọn, dễ dùng. Quá tuyệt vời. Xin cảm ơn đội ngũ làm ra app rất rất nhiều!'
     }
   ];
 

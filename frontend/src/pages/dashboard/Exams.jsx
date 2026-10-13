@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ClipboardList, Clock, Award, CheckCircle2, FileText, Sparkles, 
   BookOpen, ChevronRight, Headphones, ArrowRight, Trophy, TrendingUp,
@@ -8,6 +8,7 @@ import {
 
 export default function Exams() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const examType = searchParams.get('type') || 'toeic'; // toeic | ielts
   
   const [selectedExam, setSelectedExam] = useState(null);
@@ -359,7 +360,13 @@ export default function Exams() {
             {currentCollections.map((col) => (
               <div
                 key={col.id}
-                onClick={() => setSelectedExam(col)}
+                onClick={() => {
+                  if (col.isPro) {
+                    openProModal();
+                    return;
+                  }
+                  setSelectedExam(col);
+                }}
                 className="group bg-white dark:bg-slate-900 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-sm hover:border-indigo-500 hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-6 cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-4">
