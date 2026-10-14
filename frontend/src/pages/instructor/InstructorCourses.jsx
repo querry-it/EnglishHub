@@ -63,24 +63,23 @@ export default function InstructorCourses() {
 
   return (
     <div className="space-y-6">
-      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Khóa học & Bài học của tôi
+            Quản lý Quiz & Đánh giá
           </h1>
           <p className="text-xs font-bold text-slate-400 mt-1">
-            Quản lý các bài giảng Dictation, Shadowing & Luyện thi bạn đã xuất bản.
+            Xem danh sách bài học và tạo bài kiểm tra (Quiz) cho học viên.
           </p>
         </div>
 
-        <Link
-          to="/instructor/create-lesson"
-          className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-transform hover:scale-105 shrink-0"
+        <button
+          className="px-5 py-3 rounded-2xl bg-slate-200 dark:bg-slate-800 text-slate-500 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed shrink-0"
+          title="Tính năng tạo bài học thuộc quyền hạn Admin"
         >
-          <PlusCircle className="w-4 h-4" />
+          <Lock className="w-4 h-4" />
           <span>TẠO BÀI HỌC MỚI</span>
-        </Link>
+        </button>
       </div>
 
       {/* Search Bar */}

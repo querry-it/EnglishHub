@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
   Headphones, Play, Search, Globe, Sparkles, Crown, 
   Video, ChevronRight, Eye, Clock, Check, Users, ArrowRight,
-  MessageSquare, Film, Tv, ExternalLink, User, Zap, X
+  MessageSquare, Film, Tv, ExternalLink, User, Zap, X, Loader2
 } from 'lucide-react';
 import DictationStudio from '../../components/DictationStudio';
 import ShadowingStudio from '../../components/ShadowingStudio';
@@ -189,6 +189,29 @@ export default function Listening() {
     }
   ];
 
+  const [lessons, setLessons] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchLessons = async (level = '') => {
+    setIsLoading(true);
+    try {
+      const response = await api.get(`/lessons${level ? `?level=${level}` : ''}`);
+      if (response.data.success) {
+        setLessons(response.data.lessons);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải bài học:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchLessons();
+  }, []);
+
+  const activeLessonDetail = lessons.find(l => String(l.id) === String(lessonId));
+
   const handleCreateCustomLesson = () => {
     if (!youtubeUrl.trim()) return;
 
@@ -217,7 +240,7 @@ export default function Listening() {
     });
   };
 
-  const activeLesson = customLesson || [...movieLessons, ...dailyLessons].find(l => String(l.id) === String(lessonId)) || movieLessons[0];
+  const activeLesson = activeLessonDetail || customLesson || [...movieLessons, ...dailyLessons].find(l => String(l.id) === String(lessonId)) || movieLessons[0];
 
   const renderCard = (lesson) => (
     <div 
@@ -240,7 +263,7 @@ export default function Listening() {
         className="relative aspect-video overflow-hidden bg-slate-950 cursor-pointer"
       >
         <img 
-          src={lesson.thumbnail} 
+          src={lesson.thumbnail}
           alt={lesson.title} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
         />
@@ -427,13 +450,13 @@ export default function Listening() {
               </div>
             </div>
 
-            {/* 3. SECTION 1: MOVIE SHORT CLIP */}
+            {/* 3. SECTION 1: MOVIE SHORT CLIP (DYNAMIC) */}
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-6 rounded-full bg-indigo-600" />
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    Movie short clip <span className="text-xs font-bold text-slate-400 dark:text-slate-500">(157 bài học)</span>
+                    Bài học mới nhất <span className="text-xs font-bold text-slate-400 dark:text-slate-500">({lessons.length} bài học)</span>
                   </h2>
                 </div>
 
@@ -443,29 +466,40 @@ export default function Listening() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {movieLessons.map(renderCard)}
-              </div>
+              {isLoading ? (
+                <div className="flex justify-center p-12">
+                   <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {lessons.length > 0 ? (
+                    lessons.map(l => renderCard({
+                      ...l,
+                      thumbnail: `https://img.youtube.com/vi/${l.videoUrl}/mqdefault.jpg`,
+                      views: 'New',
+                      duration: 'Dictation'
+                    }))
+                  ) : (
+                    <div className="col-span-full p-12 text-center bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                       <p className="text-slate-500 font-bold text-sm">Chưa có bài học nào được đăng.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* 4. SECTION 2: DAILY CONVERSATION */}
+            {/* 4. SECTION 2: MOVIE SHORT CLIP (SAMPLE) */}
             <div className="space-y-4 pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-6 rounded-full bg-emerald-500" />
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    Daily English Conversation <span className="text-xs font-bold text-slate-400 dark:text-slate-500">(148 bài học)</span>
+                    Movie short clip <span className="text-xs font-bold text-slate-400 dark:text-slate-500">(Sample)</span>
                   </h2>
                 </div>
-
-                <button className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 text-slate-700 dark:text-slate-300 font-extrabold text-xs flex items-center gap-1 transition-colors">
-                  <span>XEM TẤT CẢ</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
               </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {dailyLessons.map(renderCard)}
+                {movieLessons.map(renderCard)}
               </div>
             </div>
 

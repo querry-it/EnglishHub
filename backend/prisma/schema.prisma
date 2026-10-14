@@ -1,11 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id                String               @id @default(uuid()) @db.Uuid
+  email             String               @unique @db.VarChar(255)
+  passwordHash      String               @map("password_hash") @db.VarChar(255)
+  fullName          String               @map("full_name") @db.VarChar(100)
+  avatarUrl         String?              @map("avatar_url") @db.VarChar(500)
+  role              Role
+  isActive          Boolean              @default(true) @map("is_active")
+  isApproved        Boolean              @default(true) @map("is_approved")
+  totalExp          Int                  @default(0) @map("total_exp")
+  level             Int                  @default(1) @map("level")
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  courses           Course[]
+  enrollments       Enrollment[]
+  flashcardReviews  FlashcardReview[]
+  instructorProfile InstructorProfile?
+  refreshTokens     RefreshToken[]
+  feedbacksGiven    SubmissionFeedback[] @relation("InstructorFeedbacks")
+  submissions       Submission[]
+  progress          UserProgress[]
+
+  @@map("users")
+}
+
+model InstructorProfile {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @unique @map("user_id") @db.Uuid
+  bio          String?
+  certificates String?
+  cvUrl        String?  @map("cv_url") @db.VarChar(500)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("instructor_profiles")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique @db.VarChar(500)
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Course {
+  id           String       @id @default(uuid()) @db.Uuid
+  instructorId String       @map("instructor_id") @db.Uuid
+  title        String       @db.VarChar(255)
+  slug         String       @unique @db.VarChar(255)
+  level        Level
+  price        Decimal      @default(0.00) @db.Decimal(12, 2)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  instructor   User         @relation(fields: [instructorId], references: [id])
+  enrollments  Enrollment[]
+  modules      Module[]
+
+  @@map("courses")
+}
+
+model Module {
+  id         String   @id @default(uuid()) @db.Uuid
+  courseId   String   @map("course_id") @db.Uuid
+  title      String   @db.VarChar(255)
+  orderIndex Int      @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lessons    Lesson[]
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("modules")
+}
+
+model Lesson {
+  id          String         @id @default(uuid()) @db.Uuid
+  moduleId    String         @map("module_id") @db.Uuid
+  title       String         @db.VarChar(255)
+  videoUrl    String?        @map("video_url") @db.VarChar(500)
+  contentText String?        @map("content_text")
+  lessonType  LessonType     @map("lesson_type")
+  orderIndex  Int            @map("order_index")
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  module      Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+  progress    UserProgress[]
+
+  @@index([moduleId, orderIndex])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  courseId        String   @map("course_id") @db.Uuid
+  progressPercent Int      @default(0) @map("progress_percent")
+  enrolledAt      DateTime @default(now()) @map("enrolled_at") @db.Timestamptz(6)
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId], name: "unique_user_course")
+  @@map("enrollments")
+}
+
+model Submission {
+  id             String               @id @default(uuid()) @db.Uuid
+  userId         String               @map("user_id") @db.Uuid
+  lessonId       String               @map("lesson_id") @db.Uuid
+  submissionType SubmissionType       @map("submission_type")
+  contentText    String?              @map("content_text")
+  audioUrl       String?              @map("audio_url") @db.VarChar(500)
+  score          Decimal?             @db.Decimal(4, 1)
+  status         SubmissionStatus     @default(PENDING)
+  submittedAt    DateTime             @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  feedbacks      SubmissionFeedback[]
+  lesson         Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lessonId])
+  @@map("submissions")
+}
+
+model SubmissionFeedback {
+  id               String     @id @default(uuid()) @db.Uuid
+  submissionId     String     @map("submission_id") @db.Uuid
+  instructorId     String     @map("instructor_id") @db.Uuid
+  rubricScores     Json       @map("rubric_scores")
+  feedbackText     String?    @map("feedback_text")
+  audioFeedbackUrl String?    @map("audio_feedback_url") @db.VarChar(500)
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  instructor       User       @relation("InstructorFeedbacks", fields: [instructorId], references: [id])
+  submission       Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("submission_feedbacks")
+}
+
+model FlashcardReview {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  word            String   @db.VarChar(100)
+  phonetic        String?  @db.VarChar(100)
+  meaning         String
+  intervalDays    Int      @default(1) @map("interval_days")
+  repetitionCount Int      @default(0) @map("repetition_count")
+  easeFactor      Decimal  @default(2.50) @map("ease_factor") @db.Decimal(4, 2)
+  nextReviewAt    DateTime @default(now()) @map("next_review_at") @db.Date
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, nextReviewAt])
+  @@map("flashcard_reviews")
+}
+
+model UserProgress {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  lessonId  String   @map("lesson_id") @db.Uuid
+  score     Int      @default(0)
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("user_progress")
 }
 
 enum Role {
@@ -39,173 +205,4 @@ enum SubmissionType {
 enum SubmissionStatus {
   PENDING
   GRADED
-}
-
-model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash") @db.VarChar(255)
-  fullName     String   @map("full_name") @db.VarChar(100)
-  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
-  role         Role
-  isActive     Boolean  @default(true) @map("is_active")
-  isApproved   Boolean  @default(true) @map("is_approved")
-  totalExp     Int      @default(0) @map("total_exp")
-  level        Int      @default(1) @map("level")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  instructorProfile InstructorProfile?
-  courses           Course[]
-  enrollments       Enrollment[]
-  submissions       Submission[]
-  progress          UserProgress[]
-  feedbacksGiven    SubmissionFeedback[] @relation("InstructorFeedbacks")
-  flashcardReviews  FlashcardReview[]
-
-  refreshTokens RefreshToken[]
-
-  @@map("users")
-}
-
-model InstructorProfile {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String   @unique @map("user_id") @db.Uuid
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio          String?  @db.Text
-  certificates String?  @db.Text
-  cvUrl        String?  @map("cv_url") @db.VarChar(500)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
-
-  @@map("instructor_profiles")
-}
-
-model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  token     String   @unique @db.VarChar(500)
-  userId    String   @map("user_id") @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime @map("expires_at") @db.Timestamptz
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  @@map("refresh_tokens")
-}
-
-model Course {
-  id           String       @id @default(uuid()) @db.Uuid
-  instructorId String       @map("instructor_id") @db.Uuid
-  title        String       @db.VarChar(255)
-  slug         String       @unique @db.VarChar(255)
-  level        Level
-  price        Decimal      @default(0.00) @db.Decimal(12, 2)
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  instructor   User         @relation(fields: [instructorId], references: [id], onDelete: Restrict)
-  modules      Module[]
-  enrollments  Enrollment[]
-
-  @@map("courses")
-}
-
-model Module {
-  id         String   @id @default(uuid()) @db.Uuid
-  courseId   String   @map("course_id") @db.Uuid
-  title      String   @db.VarChar(255)
-  orderIndex Int      @map("order_index")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons    Lesson[]
-
-  @@map("modules")
-}
-
-model Lesson {
-  id          String       @id @default(uuid()) @db.Uuid
-  moduleId    String       @map("module_id") @db.Uuid
-  title       String       @db.VarChar(255)
-  videoUrl    String?      @map("video_url") @db.VarChar(500)
-  contentText String?      @map("content_text")
-  lessonType  LessonType   @map("lesson_type")
-  orderIndex  Int          @map("order_index")
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  module      Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  submissions Submission[]
-  progress    UserProgress[]
-
-  @@index([moduleId, orderIndex])
-  @@map("lessons")
-}
-
-model Enrollment {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  courseId        String   @map("course_id") @db.Uuid
-  progressPercent Int      @default(0) @map("progress_percent")
-  enrolledAt      DateTime @default(now()) @map("enrolled_at") @db.Timestamptz
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId], name: "unique_user_course")
-  @@map("enrollments")
-}
-
-model Submission {
-  id             String               @id @default(uuid()) @db.Uuid
-  userId         String               @map("user_id") @db.Uuid
-  lessonId       String               @map("lesson_id") @db.Uuid
-  submissionType SubmissionType       @map("submission_type")
-  contentText    String?              @map("content_text")
-  audioUrl       String?              @map("audio_url") @db.VarChar(500)
-  score          Decimal?             @db.Decimal(4, 1)
-  status         SubmissionStatus     @default(PENDING)
-  submittedAt    DateTime             @default(now()) @map("submitted_at") @db.Timestamptz
-  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson         Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  feedbacks      SubmissionFeedback[]
-
-  @@index([userId, lessonId])
-  @@map("submissions")
-}
-
-model SubmissionFeedback {
-  id               String     @id @default(uuid()) @db.Uuid
-  submissionId     String     @map("submission_id") @db.Uuid
-  instructorId     String     @map("instructor_id") @db.Uuid
-  rubricScores     Json       @map("rubric_scores")
-  feedbackText     String?    @map("feedback_text")
-  audioFeedbackUrl String?    @map("audio_feedback_url") @db.VarChar(500)
-  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  submission       Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  instructor       User       @relation("InstructorFeedbacks", fields: [instructorId], references: [id], onDelete: Restrict)
-
-  @@map("submission_feedbacks")
-}
-
-model FlashcardReview {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  word            String   @db.VarChar(100)
-  phonetic        String?  @db.VarChar(100)
-  meaning         String
-  intervalDays    Int      @default(1) @map("interval_days")
-  repetitionCount Int      @default(0) @map("repetition_count")
-  easeFactor      Decimal  @default(2.50) @map("ease_factor") @db.Decimal(4, 2)
-  nextReviewAt    DateTime @default(now()) @map("next_review_at") @db.Date
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, nextReviewAt])
-  @@map("flashcard_reviews")
-}
-
-model UserProgress {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  lessonId  String   @map("lesson_id") @db.Uuid
-  score     Int      @default(0)
-  completed Boolean  @default(false)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, lessonId])
-  @@map("user_progress")
 }

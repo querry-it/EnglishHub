@@ -18,20 +18,20 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     );
   }
 
-  // 1. Nếu chưa đăng nhập -> Chuyển hướng về trang đăng nhập
+  // Neu chua dang nhap -> Chuyen huong ve trang dang nhap
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Kiểm tra nếu là Instructor nhưng chưa được duyệt (isApproved === false)
-  // Chỉ áp dụng khi truy cập vào các trang dành riêng cho Instructor/Admin
+  // Kiem tra neu la Instructor nhung chua duoc duyet (isApproved === false)
+  // Chi ap dung khi truy cap vao cac trang danh rieng cho Instructor/Admin
   if (user.role === 'INSTRUCTOR' && !user.isApproved && allowedRoles && allowedRoles.includes('INSTRUCTOR')) {
     // Bạn có thể tạo trang /onboarding hoặc /waiting-approval
     // Ở đây tạm thời cho phép vào nhưng có thể hiện thông báo ở giao diện sau
     console.warn("Tài khoản giảng viên chưa được phê duyệt");
   }
 
-  // 3. Nếu có yêu cầu vai trò và vai trò hiện tại không nằm trong danh sách được phép
+  // Neu co yeu cau vai tro va vai tro hien tai khong nam trong danh sach duoc phep
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
