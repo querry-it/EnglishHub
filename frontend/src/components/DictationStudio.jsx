@@ -21,6 +21,14 @@ export default function DictationStudio({ lesson }) {
   const [showComments, setShowComments] = useState(false);
   const [isProLocked, setIsProLocked] = useState(lesson?.isPro || false);
 
+  // Result & Submit state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [submitResult, setSubmitResult] = useState(null);
+
+  // Track manual hints used (to calculate score)
+  const [hintsCount, setHintsCount] = useState(0);
+
   // Note Modal state
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [selectedNoteSeg, setSelectedNoteSeg] = useState(null);
@@ -54,7 +62,8 @@ export default function DictationStudio({ lesson }) {
         return {
           word: w,
           masked: '*'.repeat(cleanLen),
-          revealed: false
+          revealed: false,
+          isHintUsed: false // Track if word was revealed by a hint
         };
       })
     };
@@ -129,9 +138,31 @@ export default function DictationStudio({ lesson }) {
 
   // Helper to generate dynamic segments matching video duration
   const generateDynamicSegments = (targetLesson) => {
-    if (targetLesson?.transcripts && Array.isArray(targetLesson.transcripts) && targetLesson.transcripts.length > 0) {
-      return targetLesson.transcripts.map((t, i) => buildSegment(i + 1, i + 1, t.text, t.vi || '', t.startTime || 0));
+    // Ưu tiên dùng dữ liệu từ Database (contentText hoặc transcripts)
+    let rawData = [];
+    if (targetLesson?.contentText) {
+      try {
+        rawData = typeof targetLesson.contentText === 'string'
+          ? JSON.parse(targetLesson.contentText)
+          : targetLesson.contentText;
+      } catch (e) {
+        console.error("Error parsing contentText", e);
+      }
+    } else if (targetLesson?.transcripts && targetLesson.transcripts.length > 0) {
+      rawData = targetLesson.transcripts;
     }
+
+    if (rawData && Array.isArray(rawData) && rawData.length > 0) {
+      return rawData.map((t, i) => buildSegment(
+        i + 1,
+        i + 1,
+        t.text,
+        t.vi || t.vietnamese || '',
+        t.start || t.startTime || 0
+      ));
+    }
+
+    // Nếu không có dữ liệu thật mới dùng sample (Fallback)
     const durationStr = targetLesson?.duration || "20:24";
     const totalSeconds = parseDurationToSeconds(durationStr);
     const count = Math.max(4, Math.min(40, Math.floor(totalSeconds / 28)));
@@ -204,6 +235,7 @@ export default function DictationStudio({ lesson }) {
     const updated = [...segments];
     if (updated[currentSegmentIndex].words[wordIndex]) {
       updated[currentSegmentIndex].words[wordIndex].revealed = true;
+      updated[currentSegmentIndex].words[wordIndex].isHintUsed = true;
       setSegments(updated);
     }
   };
@@ -211,7 +243,12 @@ export default function DictationStudio({ lesson }) {
   const handleRevealAll = () => {
     if (!segments || !segments[currentSegmentIndex] || !segments[currentSegmentIndex].words) return;
     const updated = [...segments];
-    updated[currentSegmentIndex].words.forEach(w => w.revealed = true);
+    updated[currentSegmentIndex].words.forEach(w => {
+      if (!w.revealed) {
+        w.revealed = true;
+        w.isHintUsed = true;
+      }
+    });
     setSegments(updated);
   };
 
@@ -240,6 +277,50 @@ export default function DictationStudio({ lesson }) {
   const handleNextSegment = () => {
     if (currentSegmentIndex < segments.length - 1) {
       seekToSegment(currentSegmentIndex + 1);
+    } else {
+      // If it's the last segment, trigger finish
+      handleSubmitResult();
+    }
+  };
+
+  const handleSubmitResult = async () => {
+    if (isSubmitting || isFinished) return;
+    setIsSubmitting(true);
+
+    // Calculate score based on words revealed without hints
+    const totalWordsCount = segments.reduce((acc, s) => acc + s.words.length, 0);
+    const wordsWithoutHints = segments.reduce((acc, s) =>
+      acc + s.words.filter(w => w.revealed && !w.isHintUsed).length, 0
+    );
+
+    const finalScore = totalWordsCount > 0 ? (wordsWithoutHints / totalWordsCount) * 100 : 0;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/dictation/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          lessonId: currentLesson.id,
+          score: finalScore
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setSubmitResult(result.data);
+        setIsFinished(true);
+      } else {
+        alert(result.message || 'Có lỗi xảy ra khi nộp bài');
+      }
+    } catch (error) {
+      console.error('Submit Error:', error);
+      alert('Không thể kết nối đến máy chủ');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -254,11 +335,11 @@ export default function DictationStudio({ lesson }) {
 
   const handleAiReExtract = () => {
     setIsExtractingAi(true);
-    setAiStatusMessage('🤖 AI Whisper STT Engine: Đang bóc tách âm thanh & trích xuất 100% toàn bộ chữ từ Video...');
+    setAiStatusMessage('AI Whisper STT Engine: Dang boc tach am thanh & trich xuat 100% toan bo chu tu Video...');
     setTimeout(() => {
       setSegments(generateDynamicSegments(currentLesson));
       setIsExtractingAi(false);
-      setAiStatusMessage('✨ Đã trích xuất 100% full từ vựng & toàn bộ lời thoại từ Video thành công!');
+      setAiStatusMessage('Da trich xuat 100% full tu vung & toan bo loi thoai tu Video thanh cong!');
       setTimeout(() => setAiStatusMessage(''), 4000);
     }, 1200);
   };
@@ -266,7 +347,7 @@ export default function DictationStudio({ lesson }) {
   return (
     <div className="space-y-3 max-w-[1550px] mx-auto w-full text-slate-900 dark:text-white flex flex-col h-[calc(100vh-85px)] overflow-hidden">
       
-      {/* 1. TOP BREADCRUMBS & MEDIA/TRANSCRIPT TOGGLE BAR */}
+      {/* TOP BREADCRUMBS & MEDIA/TRANSCRIPT TOGGLE BAR */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-2 border-b border-slate-200 dark:border-slate-800">
         
         {/* Breadcrumb path & Level Badge */}
@@ -303,7 +384,7 @@ export default function DictationStudio({ lesson }) {
         </div>
       )}
 
-      {/* 2. THREE-COLUMN WORKSPACE LAYOUT (Aligned Fixed-Height Rigid Grid with ~8px Bottom Margin) */}
+      {/* THREE-COLUMN WORKSPACE LAYOUT (Aligned Fixed-Height Rigid Grid with ~8px Bottom Margin) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch flex-1 h-[calc(100vh-140px)] overflow-hidden mb-2">
         
         {/* ================= COLUMN 1: VIDEO PLAYER & CONTROLS ================= */}
@@ -654,20 +735,41 @@ export default function DictationStudio({ lesson }) {
 
               {/* Bottom Main Action Buttons (HIỆN TẤT CẢ TỪ & TIẾP THEO >) */}
               <div className="space-y-3 pt-2 shrink-0">
-                <button
-                  onClick={handleRevealAll}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 border-2 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-300 font-black text-xs uppercase tracking-wider transition-all shadow-xs"
-                >
-                  HIỆN TẤT CẢ TỪ
-                </button>
+                {isFinished && submitResult ? (
+                  <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/50 animate-fade-in space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">HOÀN THÀNH!</span>
+                      <span className="text-xs font-bold text-emerald-600">Score: {Math.round(submitResult.score)}%</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>+{submitResult.expGained} EXP</span>
+                      {submitResult.levelUp && (
+                        <span className="px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-black">LEVEL UP TO {submitResult.level}!</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleRevealAll}
+                      disabled={isSubmitting}
+                      className="w-full py-3.5 px-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 border-2 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-300 font-black text-xs uppercase tracking-wider transition-all shadow-xs disabled:opacity-50"
+                    >
+                      HIỆN TẤT CẢ TỪ
+                    </button>
 
-                <button
-                  onClick={handleNextSegment}
-                  className="w-full py-4 px-4 rounded-2xl bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
-                >
-                  <span>TIẾP THEO</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                    <button
+                      onClick={handleNextSegment}
+                      disabled={isSubmitting}
+                      className="w-full py-4 px-4 rounded-2xl bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 disabled:opacity-50"
+                    >
+                      <span>{currentSegmentIndex === segments.length - 1 ? (isSubmitting ? 'ĐANG NỘP BÀI...' : 'HOÀN TẤT BÀI TẬP') : 'TIẾP THEO'}</span>
+                      {currentSegmentIndex !== segments.length - 1 && <ChevronRight className="w-4 h-4" />}
+                      {currentSegmentIndex === segments.length - 1 && !isSubmitting && <CheckCircle2 className="w-4 h-4" />}
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}

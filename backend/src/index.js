@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import dictationRoutes from './routes/dictationRoutes.js';
+import lessonRoutes from './routes/lessonRoutes.js';
 
 // import courseRoutes from './routes/courseRoutes.js';
 // import vocabRoutes from './routes/vocabRoutes.js';
@@ -24,6 +25,7 @@ app.use(cookieParser());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dictation', dictationRoutes);
+app.use('/api/lessons', lessonRoutes);
 // app.use('/api/courses', courseRoutes);
 // app.use('/api/vocab', vocabRoutes);
 

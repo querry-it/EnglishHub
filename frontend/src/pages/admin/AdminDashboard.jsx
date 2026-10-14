@@ -184,6 +184,13 @@ export default function AdminDashboard() {
             <Users className="w-4 h-4" />
             <span>QUẢN LÝ USERS</span>
           </Link>
+          <Link
+            to="/admin/courses"
+            className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-transform hover:scale-105"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>QUẢN LÝ KHÓA HỌC</span>
+          </Link>
         </div>
       </div>
 
