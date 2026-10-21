@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
+import api from '../../api/axios';
+import {
   Headphones, Mic, BookOpen, Award, ArrowRight, Sparkles, 
   CheckCircle2, Zap, Star, ShieldCheck, Clock, Users, Target, 
   TrendingUp, Heart, ChevronDown, MessageCircle, Play, Check, Flame, 
@@ -10,6 +11,25 @@ import AppMascot from '../../components/AppMascot';
 
 export default function Home() {
   const [activeFaq, setActiveFaq] = useState(0);
+  const [latestLessons, setLatestLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLatestLessons = async () => {
+      try {
+        const response = await api.get('/lessons');
+        if (response.data.success) {
+          // Lấy tối đa 20 bài mới nhất để lướt ngang
+          setLatestLessons(response.data.lessons.slice(0, 20));
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải bài học trang chủ:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLatestLessons();
+  }, []);
 
   // Section 2 Data (Exact Screenshot 7)
   const section2Items = [
@@ -288,6 +308,92 @@ export default function Home() {
           })}
         </div>
       </section>
+
+      {/* NEW: LATEST LESSONS SECTION - Tối ưu cuộn mượt */}
+      {!loading && latestLessons.length > 0 && (
+        <section className="container py-20 bg-slate-50/50 dark:bg-slate-900/20 rounded-[40px] my-10 border border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 px-4">
+            <div className="space-y-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider">
+                <Flame className="w-3 h-3 fill-current" />
+                Học ngay hôm nay
+              </span>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                Bài học mới nhất
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+                Khám phá các bài luyện nghe chép chính tả vừa được cập nhật từ đội ngũ chuyên gia.
+              </p>
+            </div>
+            <Link
+              to="/listening"
+              className="group flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline"
+            >
+              Xem tất cả bài học
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto pb-6 -mx-4 px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:display-none overscroll-x-contain touch-pan-x snap-x snap-proximity scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex flex-col gap-6 w-max min-w-full transform-gpu">
+              {/* Grid 2 hàng, chảy theo chiều ngang - Tối ưu chống giật */}
+              <div className="grid grid-rows-2 grid-flow-col gap-6 auto-cols-max">
+                {latestLessons.map((lesson) => {
+                  const getYoutubeId = (url) => {
+                    if (!url) return '';
+                    if (url.length === 11) return url;
+                    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                    const match = url.match(regExp);
+                    return (match && match[2].length === 11) ? match[2] : url;
+                  };
+                  const videoId = getYoutubeId(lesson.videoUrl);
+
+                  return (
+                    <Link
+                      key={lesson.id}
+                      to={`/listening?lessonId=${lesson.id}`}
+                      className="w-[280px] group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 transition-[transform,shadow,border-color] duration-300 shadow-sm hover:shadow-xl snap-start transform-gpu will-change-transform"
+                    >
+                      <div className="relative aspect-video">
+                        <img
+                          src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                          alt={lesson.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-sm">
+                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-tight">
+                          Level {lesson.level}
+                        </span>
+                      </div>
+                      <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                    <div className="p-5 space-y-2">
+                      <h3 className="font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
+                        {lesson.title}
+                      </h3>
+                      <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold uppercase">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(lesson.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Zap className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          +20 EXP
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+      )}
 
       {/* 3. SECTION 3 - Phương Pháp Học Đơn Giản (Exact Screenshot 8) */}
       <section className="container py-20 md:py-28 border-b border-slate-100 dark:border-slate-900 space-y-16">

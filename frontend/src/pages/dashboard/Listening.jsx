@@ -9,6 +9,21 @@ import DictationStudio from '../../components/DictationStudio';
 import ShadowingStudio from '../../components/ShadowingStudio';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
+
+const getYoutubeId = (url) => {
+  if (!url) return '';
+  if (url.length === 11) return url;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  const id = (match && match[2].length === 11) ? match[2] : url.trim();
+  return id.length === 11 ? id : '';
+};
+
+const getThumbnail = (videoId) => {
+  if (!videoId) return 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=500&q=80';
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+};
 
 function LimitPopup({ isOpen, onClose }) {
   const { openProModal } = useAuth();
@@ -43,6 +58,121 @@ function LimitPopup({ isOpen, onClose }) {
   );
 }
 
+// Component Skeleton để hiển thị khi đang tải dữ liệu
+const LessonCardSkeleton = () => (
+  <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border-2 border-slate-100 dark:border-slate-800 flex flex-col animate-pulse">
+    <div className="aspect-video bg-slate-200 dark:bg-slate-800" />
+    <div className="p-4 space-y-3">
+      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-3/4" />
+      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/2" />
+      <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/4" />
+        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/4" />
+      </div>
+    </div>
+  </div>
+);
+
+// Helper components tách biệt để tối ưu render
+const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing, openProModal }) => (
+  <div
+    className={`group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col border-2 ${
+      lesson.isPro
+        ? 'border-amber-400 dark:border-amber-500 shadow-md shadow-amber-500/10'
+        : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400'
+    }`}
+  >
+    {/* Thumbnail Area */}
+    <div
+      onClick={() => {
+        if (lesson.isPro) {
+          openProModal();
+          return;
+        }
+        onSelect(lesson.id);
+      }}
+      className="relative aspect-video overflow-hidden bg-slate-950 cursor-pointer"
+    >
+      <img
+        src={lesson.thumbnail}
+        alt={lesson.title}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+        loading="lazy"
+        onError={(e) => {
+          e.target.src = 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=500&q=80';
+        }}
+      />
+
+      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
+        {lesson.isPro && (
+          <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-1 shadow-sm uppercase tracking-wider">
+            <Crown className="w-3 h-3 fill-current" /> PRO
+          </span>
+        )}
+        <span className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-white font-bold text-[10px] flex items-center gap-1">
+          <Eye className="w-3 h-3 text-slate-300" /> {lesson.views}
+        </span>
+      </div>
+
+      <div className="absolute top-2.5 right-2.5 z-10">
+        <span className={`px-2.5 py-0.5 rounded-lg text-white font-extrabold text-[11px] shadow-sm ${lesson.levelColor || 'bg-sky-600'}`}>
+          {lesson.level}
+        </span>
+      </div>
+
+      <div className="absolute bottom-2.5 left-2.5 z-10">
+        <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-white font-semibold text-[10px] flex items-center gap-1">
+          <Video className="w-3 h-3 text-rose-500 fill-current" /> Youtube
+        </span>
+      </div>
+
+      <div className="absolute bottom-2.5 right-2.5 z-10">
+        <span className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-sm text-white font-mono text-[10px] font-bold flex items-center gap-1">
+          <Clock className="w-3 h-3 text-slate-300" /> {lesson.duration}
+        </span>
+      </div>
+    </div>
+
+    {/* Card Info */}
+    <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white dark:bg-slate-900">
+      <h4
+        onClick={() => {
+          if (lesson.isPro) {
+            openProModal();
+            return;
+          }
+          onSelect(lesson.id);
+        }}
+        className="font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer"
+      >
+        {lesson.title}
+      </h4>
+
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+        <button
+          onClick={() => {
+            if (lesson.isPro) { openProModal(); return; }
+            onSelect(lesson.id);
+          }}
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
+        >
+          Dictation <span className="text-slate-400 text-[10px]">⊗</span>
+        </button>
+
+        <button
+          onClick={() => {
+            if (lesson.isPro) { openProModal(); return; }
+            onSelectShadowing(lesson.id);
+          }}
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
+        >
+          Shadowing <span className="text-slate-400 text-[10px]">⊗</span>
+        </button>
+      </div>
+    </div>
+  </div>
+));
+
 export default function Listening() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,7 +184,7 @@ export default function Listening() {
   const [showLimitPopup, setShowLimitPopup] = useState(false);
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [selectedTag, setSelectedTag] = useState('Nâng cao');
+  const [selectedTag, setSelectedTag] = useState(null);
   const [customLesson, setCustomLesson] = useState(null);
 
   const categoryTags = [
@@ -191,24 +321,56 @@ export default function Listening() {
 
   const [lessons, setLessons] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [isMoreLoading, setIsMoreLoading] = useState(false);
 
-  const fetchLessons = async (level = '') => {
-    setIsLoading(true);
+  const fetchLessons = async (page = 1, isLoadMore = false) => {
+    if (isLoadMore) setIsMoreLoading(true);
+    else setIsLoading(true);
+
     try {
-      const response = await api.get(`/lessons${level ? `?level=${level}` : ''}`);
+      let levelParam = '';
+      if (selectedTag === 'Người mới bắt đầu') levelParam = 'A2';
+      if (selectedTag === 'Nâng cao') levelParam = 'B2';
+
+      let typeParam = undefined;
+      if (selectedTag === '#shadowing') typeParam = 'SPEAKING';
+
+      const response = await api.get(`/lessons`, {
+        params: {
+          level: levelParam || undefined,
+          type: typeParam,
+          page: page,
+          limit: 12
+        }
+      });
+
       if (response.data.success) {
-        setLessons(response.data.lessons);
+        if (isLoadMore) {
+          setLessons(prev => [...prev, ...response.data.lessons]);
+        } else {
+          setLessons(response.data.lessons);
+        }
+        setPagination(response.data.pagination);
       }
     } catch (error) {
       console.error('Lỗi khi tải bài học:', error);
     } finally {
       setIsLoading(false);
+      setIsMoreLoading(false);
     }
   };
 
   React.useEffect(() => {
-    fetchLessons();
-  }, []);
+    fetchLessons(1, false);
+  }, [selectedTag]);
+
+  const handleLoadMore = () => {
+    if (pagination.page < pagination.totalPages) {
+      fetchLessons(pagination.page + 1, true);
+    }
+  };
 
   const activeLessonDetail = lessons.find(l => String(l.id) === String(lessonId));
 
@@ -241,106 +403,6 @@ export default function Listening() {
   };
 
   const activeLesson = activeLessonDetail || customLesson || [...movieLessons, ...dailyLessons].find(l => String(l.id) === String(lessonId)) || movieLessons[0];
-
-  const renderCard = (lesson) => (
-    <div 
-      key={lesson.id}
-      className={`group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col border-2 ${
-        lesson.isPro 
-          ? 'border-amber-400 dark:border-amber-500 shadow-md shadow-amber-500/10' 
-          : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400'
-      }`}
-    >
-      {/* Thumbnail Area */}
-      <div 
-        onClick={() => {
-          if (lesson.isPro) {
-            openProModal();
-            return;
-          }
-          setSearchParams({ mode: 'dictation', lessonId: lesson.id });
-        }}
-        className="relative aspect-video overflow-hidden bg-slate-950 cursor-pointer"
-      >
-        <img 
-          src={lesson.thumbnail}
-          alt={lesson.title} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-        />
-        
-        {/* Top Left: PRO badge & Views */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
-          {lesson.isPro && (
-            <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-1 shadow-sm uppercase tracking-wider">
-              <Crown className="w-3 h-3 fill-current" /> PRO
-            </span>
-          )}
-          <span className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-white font-bold text-[10px] flex items-center gap-1">
-            <Eye className="w-3 h-3 text-slate-300" /> {lesson.views}
-          </span>
-        </div>
-
-        {/* Top Right: Level Badge */}
-        <div className="absolute top-2.5 right-2.5 z-10">
-          <span className={`px-2.5 py-0.5 rounded-lg text-white font-extrabold text-[11px] shadow-sm ${lesson.levelColor || 'bg-sky-600'}`}>
-            {lesson.level}
-          </span>
-        </div>
-
-        {/* Bottom Left: Youtube Source */}
-        <div className="absolute bottom-2.5 left-2.5 z-10">
-          <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-white font-semibold text-[10px] flex items-center gap-1">
-            <Video className="w-3 h-3 text-rose-500 fill-current" /> Youtube
-          </span>
-        </div>
-
-        {/* Bottom Right: Duration */}
-        <div className="absolute bottom-2.5 right-2.5 z-10">
-          <span className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-sm text-white font-mono text-[10px] font-bold flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-300" /> {lesson.duration}
-          </span>
-        </div>
-      </div>
-
-      {/* Card Info */}
-      <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white dark:bg-slate-900">
-        <h4 
-          onClick={() => {
-            if (lesson.isPro) {
-              openProModal();
-              return;
-            }
-            setSearchParams({ mode: 'dictation', lessonId: lesson.id });
-          }}
-          className="font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer"
-        >
-          {lesson.title}
-        </h4>
-        
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-          <button 
-            onClick={() => {
-              if (lesson.isPro) { openProModal(); return; }
-              setSearchParams({ mode: 'dictation', lessonId: lesson.id });
-            }}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
-          >
-            Dictation <span className="text-slate-400 text-[10px]">⊗</span>
-          </button>
-          
-          <button 
-            onClick={() => {
-              if (lesson.isPro) { openProModal(); return; }
-              setSearchParams({ mode: 'shadowing', lessonId: lesson.id });
-            }}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
-          >
-            Shadowing <span className="text-slate-400 text-[10px]">⊗</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="w-full min-h-screen pb-12">
@@ -435,7 +497,7 @@ export default function Listening() {
                   return (
                     <button
                       key={idx}
-                      onClick={() => setSelectedTag(tag.label)}
+                      onClick={() => setSelectedTag(prev => prev === tag.label ? null : tag.label)}
                       className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
                         isActive
                           ? 'bg-slate-900 dark:bg-indigo-600 text-white border-slate-900 dark:border-indigo-600 shadow-sm font-extrabold'
@@ -460,31 +522,105 @@ export default function Listening() {
                   </h2>
                 </div>
 
-                <button className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 text-slate-700 dark:text-slate-300 font-extrabold text-xs flex items-center gap-1 transition-colors">
-                  <span>XEM TẤT CẢ</span>
-                  <ChevronRight className="w-4 h-4" />
+                <button
+                  onClick={() => setShowAll(!showAll)}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 text-slate-700 dark:text-slate-300 font-extrabold text-xs flex items-center gap-1 transition-colors"
+                >
+                  <span>{showAll ? 'THU GỌN' : 'XEM TẤT CẢ'}</span>
+                  <ChevronRight className={`w-4 h-4 transition-transform ${showAll ? 'rotate-90' : ''}`} />
                 </button>
               </div>
 
               {isLoading ? (
-                <div className="flex justify-center p-12">
-                   <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                <div className={showAll ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" : "flex gap-5 overflow-hidden"}>
+                  {[...Array(showAll ? 8 : 4)].map((_, i) => (
+                    <div key={i} className={showAll ? "" : "w-[280px] shrink-0"}>
+                      <LessonCardSkeleton />
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {lessons.length > 0 ? (
-                    lessons.map(l => renderCard({
-                      ...l,
-                      thumbnail: `https://img.youtube.com/vi/${l.videoUrl}/mqdefault.jpg`,
-                      views: 'New',
-                      duration: 'Dictation'
-                    }))
+                <>
+                  {!showAll ? (
+                    /* Dạng lướt ngang 2 hàng - Tối ưu chống giật */
+                    <div className="overflow-x-auto pb-6 -mx-2 px-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:display-none overscroll-x-contain touch-pan-x snap-x snap-proximity scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <div className="flex flex-col gap-5 w-max min-w-full">
+                        <div className="grid grid-rows-2 grid-flow-col gap-5 auto-cols-max">
+                          {lessons.length > 0 ? (
+                            lessons.slice(0, 20).map(l => {
+                              const vId = getYoutubeId(l.videoUrl);
+                              return (
+                                <div key={l.id} className="w-[280px] snap-start">
+                                  <LessonCard
+                                    lesson={{
+                                      ...l,
+                                      thumbnail: getThumbnail(vId),
+                                      views: 'New',
+                                      duration: 'Dictation'
+                                    }}
+                                    onSelect={(id) => setSearchParams({ mode: 'dictation', lessonId: id })}
+                                    onSelectShadowing={(id) => setSearchParams({ mode: 'shadowing', lessonId: id })}
+                                    openProModal={openProModal}
+                                  />
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="w-[300px] p-12 text-center bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                               <p className="text-slate-500 font-bold text-sm">Chưa có bài học nào.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ) : (
-                    <div className="col-span-full p-12 text-center bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                       <p className="text-slate-500 font-bold text-sm">Chưa có bài học nào được đăng.</p>
+                    /* Dạng Grid đầy đủ khi nhấn Xem tất cả - Đã tối ưu triệt để cuộn dọc */
+                    <div className="space-y-8 pb-10">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 animate-fade-in">
+                        {lessons.map(l => {
+                          const vId = getYoutubeId(l.videoUrl);
+                          return (
+                            <LessonCard
+                              key={l.id}
+                              lesson={{
+                                ...l,
+                                thumbnail: getThumbnail(vId),
+                                views: 'New',
+                                duration: 'Dictation'
+                              }}
+                              onSelect={(id) => setSearchParams({ mode: 'dictation', lessonId: id })}
+                              onSelectShadowing={(id) => setSearchParams({ mode: 'shadowing', lessonId: id })}
+                              openProModal={openProModal}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {/* Nút Load More */}
+                      {pagination.page < pagination.totalPages && (
+                        <div className="flex justify-center pt-4">
+                          <button
+                            onClick={handleLoadMore}
+                            disabled={isMoreLoading}
+                            className="px-8 py-3 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-500 text-slate-900 dark:text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                          >
+                            {isMoreLoading ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>ĐANG TẢI...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>TẢI THÊM BÀI HỌC</span>
+                                <ChevronRight className="w-4 h-4 rotate-90" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
+                </>
               )}
             </div>
 
@@ -498,8 +634,16 @@ export default function Listening() {
                   </h2>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {movieLessons.map(renderCard)}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pb-10">
+                {movieLessons.map(l => (
+                  <LessonCard
+                    key={l.id}
+                    lesson={l}
+                    onSelect={(id) => setSearchParams({ mode: 'dictation', lessonId: id })}
+                    onSelectShadowing={(id) => setSearchParams({ mode: 'shadowing', lessonId: id })}
+                    openProModal={openProModal}
+                  />
+                ))}
               </div>
             </div>
 

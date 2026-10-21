@@ -71,7 +71,14 @@ export const loginUser = async ({ email, password }) => {
 
   // Tạo Access Token (15 phút)
   const accessToken = jwt.sign(
-    { id: user.id, role: user.role, email: user.email },
+    {
+      id: user.id,
+      role: user.role,
+      email: user.email,
+      fullName: user.fullName,
+      totalExp: user.totalExp,
+      level: user.level
+    },
     process.env.JWT_SECRET,
     { expiresIn: '15m' }
   );
@@ -141,12 +148,29 @@ export const refreshTokenService = async (token) => {
 
   // Tạo Access Token mới
   const newAccessToken = jwt.sign(
-    { id: storedToken.user.id, role: storedToken.user.role, email: storedToken.user.email },
+    {
+      id: storedToken.user.id,
+      role: storedToken.user.role,
+      email: storedToken.user.email,
+      fullName: storedToken.user.fullName,
+      totalExp: storedToken.user.totalExp,
+      level: storedToken.user.level
+    },
     process.env.JWT_SECRET,
     { expiresIn: '15m' }
   );
 
-  return { accessToken: newAccessToken };
+  return {
+    accessToken: newAccessToken,
+    user: {
+      id: storedToken.user.id,
+      email: storedToken.user.email,
+      fullName: storedToken.user.fullName,
+      role: storedToken.user.role,
+      totalExp: storedToken.user.totalExp,
+      level: storedToken.user.level
+    }
+  };
 };
 
 // Hàm xóa Refresh Token khỏi Database khi người dùng đăng xuất

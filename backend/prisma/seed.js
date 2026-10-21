@@ -4,7 +4,6 @@ import { getYoutubeTranscript } from '../src/services/youtubeService.js';
 
 const prisma = new PrismaClient();
 
-// Danh sách 120 Video thực tế hoạt động tốt (20 video/cấp độ)
 const realVideos = [
   // A1 (20 videos)
   { "level": "A1", "title": "5-Minute Listening Practice for Beginners", "id": "1nxtzyKNyfg" },
@@ -118,7 +117,7 @@ const realVideos = [
 
   // IELTS (20 videos)
   { "level": "IELTS", "title": "IELTS Speaking Practice Sample Test for 7 to 9 Bands (Set 1)", "id": "RtqwmvtNpsI" },
-  { "level": "IELTS", "title": "IELTS Speaking Practice Sample Test for 7 to 9 Bands (Set 2)", "id": "SDFlhFl_-Wto" },
+  { "level": "IELTS", "title": "IELTS Speaking Practice Sample Test for 7 to 9 Bands (Set 2)", "id": "SDFlhFl_-Wt" },
   { "level": "IELTS", "title": "IELTS Speaking Test – Band 7 to 9 Sample Answers & Tips", "id": "RaQdVrn01TE" },
   { "level": "IELTS", "title": "IELTS Speaking 7 Bands Demo Full Simulation", "id": "JjT9IuT1sRQ" },
   { "level": "IELTS", "title": "IELTS Speaking Part 1 Focus: Job, Law and Studies", "id": "e_bOn_l_D0Y" },
@@ -129,7 +128,7 @@ const realVideos = [
   { "level": "IELTS", "title": "IELTS Speaking Test: Topics on Politeness & Vegetables", "id": "bLxhjqkzca0" },
   { "level": "IELTS", "title": "IELTS Speaking Part 3 Extended Follow-Up Questions Practice", "id": "SJLCfhKnT9s" },
   { "level": "IELTS", "title": "High-Band Candidate Vocabulary and Coherence Masterclass", "id": "RtqwmvtNpsI" },
-  { "level": "IELTS", "title": "IELTS Strategy: How to Structure Long Answers Confidently", "id": "SDFlhFl_-Wto" },
+  { "level": "IELTS", "title": "IELTS Strategy: How to Structure Long Answers Confidently", "id": "SDFlhFl_-Wt" },
   { "level": "IELTS", "title": "Advanced Pronunciation Tips for IELTS Speaking Test Success", "id": "RaQdVrn01TE" },
   { "level": "IELTS", "title": "IELTS Academic Mock Test Simulation: High Band Guide", "id": "JjT9IuT1sRQ" },
   { "level": "IELTS", "title": "Cue Card Strategies: Talking Non-Stop for Two Minutes", "id": "e_bOn_l_D0Y" },
@@ -142,7 +141,8 @@ const realVideos = [
 async function main() {
   console.log('--- Bat dau qua trinh Seeding EnglishHub ---');
 
-  // Xoa du lieu cu de lam sach (Theo thu tu phu thuoc)
+  // Xoa du lieu cu
+  await prisma.expLog.deleteMany({});
   await prisma.submissionFeedback.deleteMany({});
   await prisma.submission.deleteMany({});
   await prisma.userProgress.deleteMany({});
@@ -158,12 +158,12 @@ async function main() {
   const saltRounds = 10;
   const commonPassword = await bcrypt.hash('EnglishHub123@', saltRounds);
 
-  // Tao cac tai khoan mau
   console.log('Dang tao tai khoan mau...');
+  // 1. Admin
   const admin = await prisma.user.create({
     data: {
       email: 'admin@englishhub.edu.vn',
-      fullName: 'Quan tri vien',
+      fullName: 'Quan tri vien Admin',
       passwordHash: commonPassword,
       role: 'ADMIN',
       totalExp: 5000,
@@ -171,90 +171,197 @@ async function main() {
     },
   });
 
-  const instructor = await prisma.user.create({
-    data: {
-      email: 'teacher.alex@englishhub.edu.vn',
-      fullName: 'Dr. Alex Ferguson',
-      passwordHash: commonPassword,
-      role: 'INSTRUCTOR',
-      instructorProfile: {
-        create: {
-          bio: 'Expert in Dictation & Listening with 15 years of experience.',
-          certificates: 'TESOL, CELTA, IELTS 9.0'
+  // 2. 10 Giảng viên
+  const instructors = [];
+  const instructorNames = ['Nguyen Van An', 'Tran Thi Bich', 'Le Hoang Nam', 'Pham Minh Duc', 'Hoang Thanh Hang', 'Vu Hai Yen', 'Dang Quoc Bao', 'Bui Gia Huy', 'Ly My Linh', 'Chu Quang Khai'];
+  for (let i = 0; i < 10; i++) {
+    const teacher = await prisma.user.create({
+      data: {
+        email: `${instructorNames[i].toLowerCase().replace(/\s+/g, '')}@englishhub.edu.vn`,
+        fullName: instructorNames[i],
+        passwordHash: commonPassword,
+        role: 'INSTRUCTOR',
+        instructorProfile: {
+          create: {
+            bio: `Chuyen gia giang day tieng Anh voi hon ${5 + i} nam kinh nghiem tai EnglishHub.`,
+            certificates: 'TESOL, CELTA, IELTS 8.5'
+          }
         }
       }
-    },
-  });
+    });
+    instructors.push(teacher);
+  }
 
-  const student = await prisma.user.create({
-    data: {
-      email: 'student.test@gmail.com',
-      fullName: 'Hoc vien Mau',
-      passwordHash: commonPassword,
-      role: 'STUDENT',
-      totalExp: 150,
-      level: 1,
-    },
-  });
+  // 3. 30 Học sinh
+  const students = [];
+  const studentNames = [
+    'Nguyen Anh Tien', 'Dang Viet Anh', 'Le Minh Tu', 'Tran Bao Ngoc', 'Pham Quang Minh',
+    'Hoang Yen Nhi', 'Vu Thanh Vinh', 'Do Thuy Linh', 'Ngo Gia Bao', 'Bui Huu Phuoc',
+    'Phan Kim Ngan', 'Dinh The Hien', 'Trinh Cong Son', 'Vo Thi Sau', 'Mai Anh Dao',
+    'Dao Van Hung', 'Hua Vi Van', 'Ta Quang Thang', 'Luong Bich Huu', 'Phung Ngoc Huy',
+    'Quach Tuan Du', 'Duong Trieu Vu', 'Ho Ngoc Ha', 'Nguyen Cao Ky Duyen', 'Truong Ngoc Anh',
+    'Ngo Thanh Van', 'Tang Thanh Ha', 'Mai Phuong Thuy', 'Dang Thu Thao', 'Pham Huong'
+  ];
+  for (let i = 0; i < 30; i++) {
+    const s = await prisma.user.create({
+      data: {
+        email: `${studentNames[i].toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+        fullName: studentNames[i],
+        passwordHash: commonPassword,
+        role: 'STUDENT',
+        totalExp: 0,
+        level: 1,
+      }
+    });
+    students.push(s);
+  }
 
-  // Tao Khoa hoc theo trinh do
-  console.log('Dang tao cac khoa hoc theo trinh do...');
-  const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'IELTS'];
-  const courseMap = {};
+  console.log('Dang tao cac khoa hoc theo Level (Admin quan ly)...');
+  const levelList = ['A1', 'A2', 'B1', 'B2', 'C1', 'IELTS'];
+  const adminCourses = {};
 
-  for (const lvl of levels) {
+  for (const lvl of levelList) {
     const course = await prisma.course.create({
       data: {
-        instructorId: instructor.id,
-        title: `Dictation Master - Level ${lvl}`,
-        slug: `dictation-master-${lvl.toLowerCase()}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        instructorId: admin.id,
+        title: `Tieng Anh trinh do ${lvl}`,
+        slug: `course-level-${lvl.toLowerCase()}-${Date.now()}-${Math.floor(Math.random()*1000)}`,
         level: lvl,
         price: 0,
         modules: {
           create: {
-            title: `Luyen nghe ${lvl} thuc chien`,
+            title: `Danh sach bai hoc ${lvl}`,
             orderIndex: 1,
           }
         }
       },
       include: { modules: true }
     });
-    courseMap[lvl] = course.modules[0].id;
+    adminCourses[lvl] = course;
   }
 
-  // Nap video vao dung trinh do
-  console.log('Dang trich xuat phu de va tao bai hoc (120 videos)...');
-  const lessonCounts = {};
+  console.log('Dang trich xuat phu de va tao 120 bai hoc cho Admin...');
+  const uniqueVideoIds = [...new Set(realVideos.map(v => v.id))];
+  const transcriptMap = new Map();
 
-  for (const vid of realVideos) {
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  console.log(`Phat hien ${uniqueVideoIds.length} video duy nhat. Dang tai phu de...`);
+
+  // Tai phu de tuan tu kem delay de tranh timeout
+  for (let i = 0; i < uniqueVideoIds.length; i++) {
+    const id = uniqueVideoIds[i];
     try {
-      const moduleId = courseMap[vid.level];
-      lessonCounts[moduleId] = (lessonCounts[moduleId] || 0) + 1;
-
-      console.log(`[Processing] ${vid.level} - ${vid.title}...`);
-      const transcript = await getYoutubeTranscript(vid.id);
-
-      if (transcript && transcript.length > 0) {
-        await prisma.lesson.create({
-          data: {
-            moduleId: moduleId,
-            title: vid.title,
-            videoUrl: `https://www.youtube.com/watch?v=${vid.id}`,
-            contentText: JSON.stringify(transcript),
-            lessonType: 'PRACTICE',
-            orderIndex: lessonCounts[moduleId]
-          }
-        });
-        console.log(`[OK] Da tao bai hoc: ${vid.title} (${vid.level})`);
-      } else {
-        console.warn(`[SKIP] Video ${vid.id} khong co phu de, bo qua.`);
+      const result = await getYoutubeTranscript(id);
+      if (result && result.transcript && result.transcript.length > 0) {
+        transcriptMap.set(id, result);
       }
-    } catch (error) {
-      console.error(`[LOI] Khong the xu ly video ${vid.id}:`, error.message);
+    } catch (e) {
+      // Bo qua
+    }
+
+    if ((i + 1) % 10 === 0) {
+      console.log(`Da tai phu de: ${i + 1}/${uniqueVideoIds.length}`);
+      await sleep(300);
     }
   }
 
-  console.log('--- Hoan thanh Seeding EnglishHub ---');
+  const lessonCounts = {};
+  let processed = 0;
+  let skipped = 0;
+
+  for (const vid of realVideos) {
+    const course = adminCourses[vid.level];
+    if (!course) continue;
+
+    const moduleId = course.modules[0].id;
+    const result = transcriptMap.get(vid.id);
+
+    if (!result) {
+      skipped++;
+      continue;
+    }
+
+    lessonCounts[moduleId] = (lessonCounts[moduleId] || 0) + 1;
+
+    await prisma.lesson.create({
+      data: {
+        moduleId: moduleId,
+        title: vid.title,
+        videoUrl: `https://www.youtube.com/watch?v=${vid.id}`,
+        duration: result.duration || "05:00",
+        contentText: JSON.stringify(result.transcript),
+        lessonType: 'PRACTICE',
+        orderIndex: lessonCounts[moduleId]
+      }
+    });
+
+    processed++;
+  }
+
+  console.log(`Ket thuc nap bai hoc: Thanh cong ${processed}, Bo qua ${skipped}.`);
+
+  console.log('Dang dang ky khoa hoc va tao tien trinh cho hoc sinh...');
+  const allAdminCourses = Object.values(adminCourses);
+  for (const s of students) {
+    let studentExp = 0;
+    // Moi hoc sinh dang ky ngau nhien 2-4 khoa hoc Level cua Admin
+    const numToEnroll = 2 + Math.floor(Math.random() * 3);
+    const shuffled = [...allAdminCourses].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, numToEnroll);
+
+    for (const c of selected) {
+      const lessons = await prisma.lesson.findMany({
+        where: { module: { courseId: c.id } }
+      });
+
+      if (lessons.length === 0) continue;
+
+      // Gia lap hoan thanh 30-70% so bai hoc
+      const numCompleted = Math.floor(lessons.length * (0.3 + Math.random() * 0.4));
+      const completedLessons = lessons.slice(0, numCompleted);
+
+      for (const les of completedLessons) {
+        await prisma.userProgress.create({
+          data: {
+            userId: s.id,
+            lessonId: les.id,
+            completed: true,
+            score: 75 + Math.floor(Math.random() * 26)
+          }
+        });
+
+        await prisma.expLog.create({
+          data: {
+            userId: s.id,
+            amount: 50,
+            reason: 'COMPLETED_LESSON'
+          }
+        });
+        studentExp += 50;
+      }
+
+      const progressPercent = Math.floor((numCompleted / lessons.length) * 100);
+      await prisma.enrollment.create({
+        data: {
+          userId: s.id,
+          courseId: c.id,
+          progressPercent: progressPercent
+        }
+      });
+    }
+
+    // Cap nhat level dua tren EXP thuc te
+    await prisma.user.update({
+      where: { id: s.id },
+      data: {
+        totalExp: studentExp,
+        level: Math.floor(studentExp / 1000) + 1
+      }
+    });
+  }
+
+  console.log('--- Hoan thanh Seeding EnglishHub (Admin so huu tat ca bai hoc) ---');
 }
 
 main()

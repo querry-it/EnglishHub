@@ -53,11 +53,12 @@ export const login = async (req, res) => {
 export const refreshToken = async (req, res) => {
   try {
     const token = req.cookies.refreshToken;
-    const { accessToken } = await refreshTokenService(token);
+    const { accessToken, user } = await refreshTokenService(token);
 
     return res.status(200).json({
       success: true,
-      accessToken
+      accessToken,
+      user
     });
   } catch (error) {
     const status = error.status || 500;
