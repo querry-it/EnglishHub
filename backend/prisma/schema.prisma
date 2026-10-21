@@ -28,8 +28,20 @@ model User {
   feedbacksGiven    SubmissionFeedback[] @relation("InstructorFeedbacks")
   submissions       Submission[]
   progress          UserProgress[]
+  expLogs           ExpLog[]
 
   @@map("users")
+}
+
+model ExpLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  amount    Int
+  reason    String   @db.VarChar(255) // Ví dụ: "COMPLETED_DICTATION", "FLASHCARD_REVIEW"
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("exp_logs")
 }
 
 model InstructorProfile {
@@ -67,6 +79,7 @@ model Course {
   enrollments  Enrollment[]
   modules      Module[]
 
+  @@index([level])
   @@map("courses")
 }
 
@@ -87,6 +100,7 @@ model Lesson {
   moduleId    String         @map("module_id") @db.Uuid
   title       String         @db.VarChar(255)
   videoUrl    String?        @map("video_url") @db.VarChar(500)
+  duration    String?        @db.VarChar(20)
   contentText String?        @map("content_text")
   lessonType  LessonType     @map("lesson_type")
   orderIndex  Int            @map("order_index")
@@ -96,6 +110,7 @@ model Lesson {
   progress    UserProgress[]
 
   @@index([moduleId, orderIndex])
+  @@index([lessonType])
   @@map("lessons")
 }
 

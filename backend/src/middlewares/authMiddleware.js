@@ -14,7 +14,7 @@ export const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(403).json({ success: false, message: 'Phiên làm việc hết hạn hoặc token không hợp lệ!' });
+    return res.status(401).json({ success: false, message: 'Phiên làm việc hết hạn hoặc token không hợp lệ!' });
   }
 };
 

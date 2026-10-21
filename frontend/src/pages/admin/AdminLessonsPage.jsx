@@ -10,6 +10,7 @@ export default function AdminLessonsPage() {
   const [courses, setCourses] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [currentEditId, setCurrentEditId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [rawTranscript, setRawTranscript] = useState([]);
   const [toastMessage, setToastMessage] = useState(null);
@@ -28,21 +29,49 @@ export default function AdminLessonsPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Quản lý việc mở/đóng các folder trình độ - Mặc định đóng hết
+  const [expandedLevels, setExpandedLevels] = useState([]);
+
+  const toggleLevel = (level) => {
+    setExpandedLevels(prev =>
+      prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]
+    );
+  };
+
+  const getThumbnail = (url) => {
+    if (!url) return 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=500&q=80';
+
+    // Trích xuất ID từ link YouTube hoặc dùng trực tiếp nếu đã là ID
+    const extractId = (link) => {
+      if (!link) return '';
+      if (link.length === 11 && !link.includes('/') && !link.includes('.')) return link;
+      try {
+        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+        const match = link.match(regex);
+        return match ? match[1] : link;
+      } catch (e) {
+        return link;
+      }
+    };
+
+    const videoId = extractId(url);
+    // Sử dụng i.ytimg.com (ổn định hơn) và hqdefault (chất lượng cao)
+    return videoId && videoId.length === 11
+      ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      : 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=500&q=80';
+  };
+
+  const handleImageError = (e) => {
+    e.target.src = 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=500&q=80';
+    e.target.onerror = null; // Ngăn lặp vô hạn
+  };
+
   const fetchLessons = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/lessons/all-admin');
+      const response = await api.get('/lessons/admin/all');
       if (response.data.success) {
-        // Flatten lessons để hiển thị trực tiếp thay vì chỉ hiện Course
-        const allLessons = response.data.courses.flatMap(c =>
-          (c.lessons || []).map(l => ({
-            ...l,
-            courseId: c.id,
-            courseTitle: c.title,
-            level: l.level || c.level
-          }))
-        );
-        setCourses(allLessons);
+        setCourses(response.data.courses);
       }
     } catch (error) {
       console.error('Lỗi khi tải danh sách:', error);
@@ -60,7 +89,52 @@ export default function AdminLessonsPage() {
     setFormData({ title: '', level: 'B1', lessonType: 'Dictation', videoUrl: '', transcript: '' });
     setRawTranscript([]);
     setIsEditing(false);
+    setCurrentEditId(null);
     setShowAddModal(true);
+  };
+
+  const handleEditLesson = async (id) => {
+    setIsLoading(true);
+    try {
+      const response = await api.get(`/lessons/${id}`);
+      if (response.data.success) {
+        const { lesson } = response.data;
+        let transcriptText = "";
+        let parsedTranscript = [];
+
+        try {
+          parsedTranscript = typeof lesson.transcript === 'string'
+            ? JSON.parse(lesson.transcript)
+            : lesson.transcript;
+
+          if (Array.isArray(parsedTranscript)) {
+            transcriptText = parsedTranscript.map(t => t.text).join('\n');
+            setRawTranscript(parsedTranscript);
+          } else {
+            transcriptText = lesson.transcript;
+          }
+        } catch (e) {
+          transcriptText = lesson.transcript;
+        }
+
+        setFormData({
+          title: lesson.title,
+          level: lesson.level || 'B1',
+          lessonType: lesson.lessonType === 'SPEAKING' ? 'Shadowing' : 'Dictation',
+          videoUrl: lesson.videoUrl,
+          transcript: transcriptText
+        });
+
+        setCurrentEditId(id);
+        setIsEditing(true);
+        setShowAddModal(true);
+      }
+    } catch (error) {
+      console.error("Fetch detail error:", error);
+      showToast("Không thể tải chi tiết bài học");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleExtractSubtitles = async () => {
@@ -98,12 +172,20 @@ export default function AdminLessonsPage() {
         finalTranscript = JSON.stringify(merged);
       }
 
-      await api.post('/lessons', {
-        ...formData,
-        transcript: finalTranscript,
-        // Có thể thêm moduleId nếu sau này muốn chọn module cụ thể
-      });
-      showToast("Đã lưu bài học!");
+      if (isEditing && currentEditId) {
+        await api.put(`/lessons/${currentEditId}`, {
+          ...formData,
+          transcript: finalTranscript,
+        });
+        showToast("Đã cập nhật bài học!");
+      } else {
+        await api.post('/lessons', {
+          ...formData,
+          transcript: finalTranscript,
+        });
+        showToast("Đã lưu bài học!");
+      }
+
       setShowAddModal(false);
       fetchLessons();
     } catch (error) {
@@ -165,52 +247,98 @@ export default function AdminLessonsPage() {
         </select>
       </div>
 
-      {/* Course List */}
-      <div className="grid grid-cols-1 gap-4">
+      {/* Course List - Phân theo Trình độ */}
+      <div className="space-y-6">
         {courses.length === 0 ? (
           <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200">
             <Video className="w-12 h-12 text-slate-300 mx-auto mb-2" />
             <p className="text-slate-500 font-bold text-sm">Chưa có bài học nào được tạo.</p>
           </div>
         ) : (
-          courses.map(course => (
-            <div key={course.id} className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-5 hover:border-indigo-400 transition-all group">
-              <div className="flex items-center justify-between">
+          courses.map(courseGroup => (
+            <div key={courseGroup.id} className="space-y-4">
+              {/* Level Header (Accordion Toggle) */}
+              <button
+                onClick={() => toggleLevel(courseGroup.level)}
+                className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl hover:border-indigo-400 transition-all"
+              >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-sm">
-                    {course.level}
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-lg shadow-indigo-200 dark:shadow-none">
+                    {courseGroup.level}
                   </div>
                   <div>
-                    <h3 className="font-black text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors text-lg">{course.title}</h3>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg">
-                        {course.lessonType || 'Dictation'}
-                      </span>
-                      <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
-                        <Video className="w-3 h-3" /> YouTube ID: {course.videoUrl || 'N/A'}
-                      </span>
-                    </div>
+                    <h3 className="font-black text-slate-900 dark:text-white text-base text-left">{courseGroup.title}</h3>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{courseGroup.lessonsCount} bài học đã sẵn sàng</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <ChevronRight className={`w-6 h-6 text-slate-400 transition-transform duration-300 ${expandedLevels.includes(courseGroup.level) ? 'rotate-90' : ''}`} />
+              </button>
+
+              {/* Lessons Grid (Show if expanded) */}
+              {expandedLevels.includes(courseGroup.level) && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 pl-4 border-l-2 border-slate-100 dark:border-slate-800 ml-5 animate-in slide-in-from-top-2 duration-300">
+                  {courseGroup.lessons.map(lesson => (
+                    <div key={lesson.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500 transition-all flex flex-col">
+                      {/* Video Preview / Thumbnail */}
+                      <div className="relative aspect-video overflow-hidden bg-slate-100">
+                        <img
+                          src={getThumbnail(lesson.videoUrl)}
+                          alt={lesson.title}
+                          onError={handleImageError}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <a
+                            href={`https://youtube.com/watch?v=${lesson.videoUrl}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                          </a>
+                        </div>
+                        <div className="absolute top-1 right-1 bg-slate-900/80 backdrop-blur-md text-[6px] font-black text-white px-1 py-0.5 rounded-sm uppercase">
+                          {lesson.lessonType === 'SPEAKING' ? 'SH' : 'DI'}
+                        </div>
+                      </div>
+
+                      {/* Lesson Content */}
+                      <div className="p-1.5 flex-1 flex flex-col justify-between">
+                        <h4 className="font-bold text-slate-900 dark:text-white text-[10px] line-clamp-2 mb-1 group-hover:text-indigo-600 transition-colors leading-tight h-6">
+                          {lesson.title}
+                        </h4>
+
+                        <div className="flex items-center justify-between mt-auto pt-1 border-t border-slate-50 dark:border-slate-800">
+                          <div className="flex items-center gap-0.5">
+                             <button
+                              onClick={() => handleEditLesson(lesson.id)}
+                              className="p-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded text-indigo-600 transition-colors"
+                            >
+                              <Edit2 className="w-2.5 h-2.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLesson(lesson.id)}
+                              className="p-1 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded text-rose-500 transition-colors"
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                          <span className="text-[7px] font-black text-slate-300 uppercase">Detail</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add Quick Button in Grid */}
                   <button
-                    onClick={() => {
-                      // Logic Edit sẽ bổ sung sau (cần fetch full lesson detail)
-                      showToast("Tính năng sửa đang được hoàn thiện");
-                    }}
-                    className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 transition-colors"
+                    onClick={handleOpenAdd}
+                    className="border border-dashed border-slate-300 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-indigo-300 transition-all text-slate-400 hover:text-indigo-500 min-h-[80px]"
                   >
-                    <Edit2 className="w-5 h-5" />
+                    <Plus className="w-4 h-4 mb-0.5" />
+                    <span className="text-[7px] font-black uppercase">Mới</span>
                   </button>
-                  <button
-                    onClick={() => handleDeleteLesson(course.id)}
-                    className="p-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl text-rose-500 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                  <ChevronRight className="w-6 h-6 text-slate-300" />
                 </div>
-              </div>
+              )}
             </div>
           ))
         )}
@@ -268,6 +396,26 @@ export default function AdminLessonsPage() {
                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                         {isLoading ? 'Đang lấy...' : 'Trích xuất'}
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Thumbnail Preview */}
+                  <div className="aspect-video rounded-3xl overflow-hidden bg-slate-100 border-2 border-slate-100 dark:border-slate-800 relative group">
+                    {formData.videoUrl ? (
+                      <img
+                        src={getThumbnail(formData.videoUrl)}
+                        alt="Preview"
+                        onError={handleImageError}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                        <Video className="w-8 h-8 mb-2 opacity-20" />
+                        <span className="text-[10px] font-black uppercase opacity-40">Chưa có video preview</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                      <span className="text-white text-[10px] font-black uppercase tracking-widest">Video Thumbnail Preview</span>
                     </div>
                   </div>
 

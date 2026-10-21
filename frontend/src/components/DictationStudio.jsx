@@ -10,7 +10,7 @@ import NoteModal from './NoteModal';
 import { useAuth } from '../context/AuthContext';
 
 export default function DictationStudio({ lesson }) {
-  const { openProModal } = useAuth();
+  const { openProModal, updateProfile } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [hideMedia, setHideMedia] = useState(false);
   const [hideTranscript, setHideTranscript] = useState(false);
@@ -296,7 +296,7 @@ export default function DictationStudio({ lesson }) {
     const finalScore = totalWordsCount > 0 ? (wordsWithoutHints / totalWordsCount) * 100 : 0;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/dictation/submit`, {
         method: 'POST',
         headers: {
@@ -313,6 +313,14 @@ export default function DictationStudio({ lesson }) {
       if (result.success) {
         setSubmitResult(result.data);
         setIsFinished(true);
+
+        // Cập nhật EXP và Level vào AuthContext ngay lập tức
+        if (result.data.totalExp !== undefined) {
+          updateProfile({
+            totalExp: result.data.totalExp,
+            level: result.data.level
+          });
+        }
       } else {
         alert(result.message || 'Có lỗi xảy ra khi nộp bài');
       }

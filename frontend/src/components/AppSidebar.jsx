@@ -239,12 +239,20 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
                   </span>
                 </div>
                 {!collapsed && (
-                  <div className="text-left truncate">
+                  <div className="text-left truncate flex-1">
                     <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
                       {user.fullName || 'Người dùng'}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-medium truncate">
-                      {user.email || ''}
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-sky-500 transition-all duration-500"
+                          style={{ width: `${((user?.totalExp || 0) % 1000) / 10}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 shrink-0">
+                        {Math.floor(((user?.totalExp || 0) % 1000) / 10)}%
+                      </span>
                     </div>
                   </div>
                 )}

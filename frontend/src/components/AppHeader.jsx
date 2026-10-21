@@ -394,6 +394,23 @@ export default function AppHeader({ isPublic = false }) {
 
                 {!isSpecialPortal && (
                   <>
+                       {/* Level & EXP Progress */}
+                    <div
+                      title={`Cấp độ ${user?.level || 1} - ${(user?.totalExp || 0) % 1000}/1000 EXP`}
+                      className="hidden md:flex items-center gap-2 bg-[#f0f5ff] dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800/50 rounded-full px-3 py-1 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-1 leading-none">
+                        <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter">Level</span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">{user?.level || 1}</span>
+                      </div>
+                      <div className="w-16 h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-1000 ease-out"
+                          style={{ width: `${((user?.totalExp || 0) % 1000) / 10}%` }}
+                        />
+                      </div>
+                    </div>
+
                     {/* Gems Badge (💎) */}
                     <div
                       title="Kim cương"

@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, Pause, RotateCcw, ChevronLeft, ChevronRight, 
   Mic, Volume2, Settings, Keyboard, MessageSquare, 
-  ChevronUp, ChevronDown, Edit3, AlertTriangle, Eye, EyeOff
+  ChevronUp, ChevronDown, Edit3, AlertTriangle, Eye, EyeOff,
+  Video
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NoteModal from './NoteModal';
 import { useAuth } from '../context/AuthContext';
-import { Crown, Lock } from 'lucide-react';
+import { Crown, Lock, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function ShadowingStudio({ lesson }) {
-  const { openProModal } = useAuth();
+  const { openProModal, updateProfile } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
@@ -20,8 +21,12 @@ export default function ShadowingStudio({ lesson }) {
   const [showTrans, setShowTrans] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState('1x');
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
+  const [recordedSegments, setRecordedSegments] = useState({}); // Track recorded status per segment
   const [showComments, setShowComments] = useState(false);
   const [isProLocked, setIsProLocked] = useState(lesson?.isPro || false);
+
+  // Ref for iframe video control
+  const iframeRef = useRef(null);
 
   // Note Modal state
   const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -34,7 +39,24 @@ export default function ShadowingStudio({ lesson }) {
     level: 'B1',
     isPro: false,
     duration: '0:53',
-    commentCount: 2010
+    commentCount: 2010,
+    videoUrl: 'M7lc1UVf-VE'
+  };
+
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return "https://www.youtube.com/embed/M7lc1UVf-VE";
+    if (url.length === 11 && !url.includes('/') && !url.includes('?') && !url.includes('=')) {
+      return `https://www.youtube.com/embed/${url}`;
+    }
+    if (url.includes("youtube.com/embed/")) {
+      return url.split("?")[0];
+    }
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2] && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`;
+    }
+    return `https://www.youtube.com/embed/${url}`;
   };
 
   // IPA Dictionary Lookup Map
@@ -61,36 +83,137 @@ export default function ShadowingStudio({ lesson }) {
     return ipaDict[clean] || `/${clean || 'word'}/`;
   };
 
-  const buildShadowingSegment = (id, num, english, vietnamese) => ({
+  const buildShadowingSegment = (id, num, english, vietnamese, startTime = 0) => ({
     id,
     number: `#${num}`,
     english,
     vietnamese,
-    words: english.split(/\s+/).map(w => ({
+    startTime,
+    words: english.split(/\s+/).filter(Boolean).map(w => ({
       word: w,
       ipa: getIPA(w)
     }))
   });
 
-  const rawShadowingData = [
-    { num: 1, en: "One of my favorite times of the day is bath time.", vi: "Một trong những khoảng thời gian yêu thích của tôi trong ngày là giờ tắm bồn." },
-    { num: 2, en: "I absolutely love taking a bath.", vi: "Tôi cực kỳ thích tắm bồn." },
-    { num: 3, en: "Honestly, I think baths are so much better than showers.", vi: "Nói thật, tôi nghĩ tắm bồn tốt hơn nhiều so với tắm vòi sen." },
-    { num: 4, en: "For me, having a bath is the most relaxing thing.", vi: "Đối với tôi, việc tắm bồn là điều thư giãn nhất." },
-    { num: 5, en: "There's nothing better in life...", vi: "Không có gì tuyệt vời hơn trong cuộc sống..." },
-    { num: 6, en: "...than sinking into a hot bath.", vi: "...ngoài việc ngâm mình vào một bồn nước nóng." },
-    { num: 7, en: "Welcome to English Listening Practice for Beginners.", vi: "Chào mừng bạn đến với bài luyện nghe tiếng Anh cho người mới bắt đầu." },
-    { num: 8, en: "Today we are going to learn about different types of homes.", vi: "Hôm nay chúng ta sẽ học về các loại hình nhà ở khác nhau." },
-    { num: 9, en: "Some people live in big houses while others live in cozy apartments.", vi: "Một số người sống trong những ngôi nhà lớn trong khi những người khác sống trong các căn hộ ấm cúng." },
-    { num: 10, en: "Let us take a complete tour around the beautiful neighborhood.", vi: "Chúng ta hãy dạo một vòng quanh khu phố xinh đẹp này." },
-    { num: 11, en: "You can hear the cars passing by and birds singing outside.", vi: "Bạn có thể nghe thấy tiếng ô tô chạy qua và tiếng chim hót bên ngoài." },
-    { num: 12, en: "Pay close attention to each word you hear in this audio lesson.", vi: "Hãy chú ý kỹ đến từng từ bạn nghe được trong bài học âm thanh này." },
-    { num: 13, en: "Keep practicing your dictation and listening skills every single day.", vi: "Hãy tiếp tục luyện tập kỹ năng nghe và chép chính tả mỗi ngày." }
-  ];
+  const generateSegments = (targetLesson) => {
+    let rawData = [];
+    if (targetLesson?.transcript) {
+      try {
+        rawData = typeof targetLesson.transcript === 'string'
+          ? JSON.parse(targetLesson.transcript)
+          : targetLesson.transcript;
+      } catch (e) {
+        const lines = targetLesson.transcript.split('\n').filter(l => l.trim());
+        rawData = lines.map((l, i) => ({ text: l, start: i * 5 }));
+      }
+    }
 
-  const shadowingSegments = rawShadowingData.map(d => buildShadowingSegment(d.num, d.num, d.en, d.vi));
+    if (rawData && Array.isArray(rawData) && rawData.length > 0) {
+      return rawData.map((d, i) => buildShadowingSegment(i + 1, i + 1, d.text, d.vi || d.vietnamese || '', d.start || 0));
+    }
+
+    // Fallback if no data
+    return [
+      buildShadowingSegment(1, 1, "One of my favorite times of the day is bath time.", "Một trong những khoảng thời gian yêu thích của tôi trong ngày là giờ tắm bồn.", 0),
+      buildShadowingSegment(2, 2, "I absolutely love taking a bath.", "Tôi cực kỳ thích tắm bồn.", 5)
+    ];
+  };
+
+  const [shadowingSegments, setShadowingSegments] = useState(() => generateSegments(currentLesson));
+
+  useEffect(() => {
+    setShadowingSegments(generateSegments(currentLesson));
+    setCurrentSegmentIndex(0);
+  }, [lesson?.id]);
 
   const activeSegment = shadowingSegments[currentSegmentIndex] || shadowingSegments[0];
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [submitResult, setSubmitResult] = useState(null);
+
+  const seekToSegment = (idx) => {
+    if (!shadowingSegments || !shadowingSegments[idx]) return;
+    setCurrentSegmentIndex(idx);
+    setIsPlaying(true);
+    const targetSeg = shadowingSegments[idx];
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      try {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'seekTo',
+            args: [targetSeg.startTime || 0, true]
+          }),
+          '*'
+        );
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'playVideo',
+            args: []
+          }),
+          '*'
+        );
+      } catch (err) {
+        console.error('Video seek error:', err);
+      }
+    }
+  };
+
+  const handleNextSegment = () => {
+    if (currentSegmentIndex < shadowingSegments.length - 1) {
+      seekToSegment(currentSegmentIndex + 1);
+      setHasRecorded(false);
+    } else {
+      handleSubmitResult();
+    }
+  };
+
+  const calculateShadowingScore = () => {
+    const recordedCount = Object.keys(recordedSegments).length;
+    const totalSegments = shadowingSegments.length;
+    if (totalSegments === 0) return 0;
+    return Math.round((recordedCount / totalSegments) * 100);
+  };
+
+  const handleSubmitResult = async () => {
+    if (isSubmitting || isFinished) return;
+    setIsSubmitting(true);
+
+    const finalScore = calculateShadowingScore();
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/dictation/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          lessonId: currentLesson.id,
+          score: finalScore
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setSubmitResult(result.data);
+        setIsFinished(true);
+        if (result.data.totalExp !== undefined) {
+          updateProfile({
+            totalExp: result.data.totalExp,
+            level: result.data.level
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Submit Error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleToggleRecord = () => {
     if (!isRecording) {
@@ -99,6 +222,11 @@ export default function ShadowingStudio({ lesson }) {
     } else {
       setIsRecording(false);
       setHasRecorded(true);
+      // Đánh dấu đoạn này đã được ghi âm
+      setRecordedSegments(prev => ({
+        ...prev,
+        [currentSegmentIndex]: true
+      }));
     }
   };
 
@@ -177,25 +305,24 @@ export default function ShadowingStudio({ lesson }) {
           ) : (
           <div className="space-y-6">
             
-            {/* HTML5 Audio Player Bar */}
-            <div className="p-3 sm:p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-3 text-slate-700 dark:text-slate-200">
-              <button 
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
-              >
-                {isPlaying ? <Pause className="w-5 h-5 fill-current text-indigo-600" /> : <Play className="w-5 h-5 fill-current" />}
-              </button>
-
-              <span className="font-mono text-xs font-bold shrink-0">0:00 / {currentLesson.duration}</span>
-
-              {/* Seek Track Bar */}
-              <div className="flex-1 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden relative cursor-pointer">
-                <div className="bg-slate-700 dark:bg-indigo-500 h-full w-[15%] rounded-full"></div>
+            {/* Video Player */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between font-black text-xs text-slate-700 dark:text-slate-300 tracking-wider">
+                <span>VIDEO BÀI HỌC</span>
+                <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
+                  ⏱ {currentLesson.duration || "0:53"}
+                </span>
               </div>
-
-              <button className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0">
-                <Volume2 className="w-4 h-4" />
-              </button>
+              <div className="relative aspect-video rounded-3xl overflow-hidden bg-slate-950 border-2 border-slate-200 dark:border-slate-800 shadow-lg">
+                <iframe
+                  ref={iframeRef}
+                  className="w-full h-full"
+                  src={`${getYouTubeEmbedUrl(currentLesson.videoUrl)}?enablejsapi=1&autoplay=0&rel=0`}
+                  title={currentLesson.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                ></iframe>
+              </div>
             </div>
 
             {/* Controls Bar: Auto-pause toggle, Big Start Button, Options */}
@@ -215,7 +342,15 @@ export default function ShadowingStudio({ lesson }) {
 
               {/* Big Center BẮT ĐẦU Button */}
               <button 
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={() => {
+                  setIsPlaying(!isPlaying);
+                  if (iframeRef.current && iframeRef.current.contentWindow) {
+                    iframeRef.current.contentWindow.postMessage(
+                      JSON.stringify({ event: 'command', func: isPlaying ? 'pauseVideo' : 'playVideo', args: [] }),
+                      '*'
+                    );
+                  }
+                }}
                 className="px-10 py-3.5 rounded-2xl bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
               >
                 {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
@@ -261,25 +396,54 @@ export default function ShadowingStudio({ lesson }) {
 
             {/* Recording Buttons Row: PHÁT LẠI GHI ÂM & GHI ÂM */}
             <div className="flex items-center justify-center gap-4 pt-2">
-              <button
-                onClick={() => setIsPlaying(true)}
-                className="px-6 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-2xs transition-all active:scale-98"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>PHÁT LẠI GHI ÂM</span>
-              </button>
+              {isFinished && submitResult ? (
+                <div className="w-full p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/50 animate-fade-in space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">HOÀN THÀNH SHADOWING!</span>
+                    <span className="text-xs font-bold text-emerald-600">Score: {Math.round(submitResult.score)}%</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>+{submitResult.expGained} EXP</span>
+                    {submitResult.levelUp && (
+                      <span className="px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-black">LEVEL UP TO {submitResult.level}!</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => seekToSegment(currentSegmentIndex)}
+                    disabled={isSubmitting}
+                    className="px-6 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-2xs transition-all active:scale-98 disabled:opacity-50"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>PHÁT LẠI ĐOẠN</span>
+                  </button>
 
-              <button
-                onClick={handleToggleRecord}
-                className={`px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all active:scale-98 ${
-                  isRecording
-                    ? 'bg-rose-600 text-white animate-pulse'
-                    : 'bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white'
-                }`}
-              >
-                <Mic className="w-4 h-4 fill-current" />
-                <span>{isRecording ? '🔴 ĐANG GHI ÂM...' : 'GHI ÂM'}</span>
-              </button>
+                  <button
+                    onClick={handleToggleRecord}
+                    disabled={isSubmitting}
+                    className={`px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all active:scale-98 ${
+                      isRecording
+                        ? 'bg-rose-600 text-white animate-pulse'
+                        : 'bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white'
+                    } disabled:opacity-50`}
+                  >
+                    <Mic className="w-4 h-4 fill-current" />
+                    <span>{isRecording ? '🔴 ĐANG GHI ÂM...' : 'GHI ÂM'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleNextSegment}
+                    disabled={isSubmitting}
+                    className="px-8 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 disabled:opacity-50"
+                  >
+                    <span>{currentSegmentIndex === shadowingSegments.length - 1 ? (isSubmitting ? 'ĐANG NỘP...' : 'XONG') : 'TIẾP'}</span>
+                    {currentSegmentIndex === shadowingSegments.length - 1 ? <CheckCircle2 className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+                </>
+              )}
             </div>
 
           </div>
@@ -350,12 +514,15 @@ export default function ShadowingStudio({ lesson }) {
                   </div>
 
                   <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
-                    0%
+                    {calculateShadowingScore()}%
                   </span>
                 </div>
 
                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-[#1E2540] dark:bg-indigo-500 h-full w-[0%] transition-all duration-300" />
+                  <div
+                    className="bg-[#1E2540] dark:bg-indigo-500 h-full transition-all duration-300"
+                    style={{ width: `${calculateShadowingScore()}%` }}
+                  />
                 </div>
               </div>
 
@@ -363,24 +530,29 @@ export default function ShadowingStudio({ lesson }) {
               <div className="flex-1 space-y-3 font-mono overflow-y-auto pr-1 custom-scrollbar my-1">
                 {shadowingSegments.map((seg, idx) => {
                   const isActive = idx === currentSegmentIndex;
+                  const isRecorded = recordedSegments[idx];
                   return (
                     <div
                       key={seg.id}
                       onClick={() => {
-                        setCurrentSegmentIndex(idx);
-                        setIsPlaying(true);
+                        seekToSegment(idx);
                       }}
                       className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2 ${
                         isActive
                           ? 'border-[#1E2540] dark:border-indigo-500 bg-slate-50 dark:bg-slate-800 shadow-sm ring-1 ring-[#1E2540]/20'
-                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900 opacity-90'
+                          : isRecorded
+                            ? 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-emerald-950/10'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900 opacity-90'
                       }`}
                     >
                       {/* Header Row (#1, Note Icon, Alert Icon) */}
                       <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                        <span className="font-black text-slate-900 dark:text-white">
-                          {seg.number}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-900 dark:text-white">
+                            {seg.number}
+                          </span>
+                          {isRecorded && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                        </div>
                         <div className="flex items-center gap-2 text-slate-400">
                           <button
                             onClick={(e) => {

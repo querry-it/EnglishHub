@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { addExperience } from '../services/levelService.js';
+import { extractVideoId } from '../services/youtubeService.js';
 
 /**
  * Nộp bài tập Dictation
@@ -15,9 +16,19 @@ export const submitDictation = async (req, res) => {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Ghi nhận tiến độ học tập
-      const progress = await tx.userProgress.create({
-        data: {
+      // 1. Ghi nhận tiến độ học tập
+      const progress = await tx.userProgress.upsert({
+        where: {
+          userId_lessonId: {
+            userId,
+            lessonId
+          }
+        },
+        update: {
+          score: Math.round(score),
+          completed: true
+        },
+        create: {
           userId,
           lessonId,
           score: Math.round(score),
@@ -25,11 +36,34 @@ export const submitDictation = async (req, res) => {
         }
       });
 
-      // Tính toán Exp nhận được (100 điểm = 1000 Exp)
-      const expGained = Math.round(score * 10);
+      // 2. Lấy thông tin bài học để biết độ dài (số từ)
+      const lesson = await tx.lesson.findUnique({
+        where: { id: lessonId },
+        select: { contentText: true }
+      });
 
-      // Sử dụng LevelService để cộng Exp và tính Level
-      const levelResult = await addExperience(tx, userId, expGained);
+      let wordCount = 0;
+      if (lesson?.contentText) {
+        try {
+          const segments = JSON.parse(lesson.contentText);
+          wordCount = segments.reduce((acc, seg) => {
+            const text = seg.text || seg.fullText || "";
+            return acc + (text.split(/\s+/).filter(Boolean).length || 0);
+          }, 0);
+        } catch (e) {
+          wordCount = 50;
+        }
+      }
+
+      // 3. CÔNG THỨC MỚI: Công bằng hơn giữa bài ngắn và bài dài
+      // EXP = (Tỷ lệ đúng * Hệ số cơ bản) + (Số lượng từ * EXP mỗi từ)
+      const baseExp = 100;
+      const expPerWord = 5;
+      const potentialExp = baseExp + (wordCount * expPerWord);
+      const expGained = Math.round(potentialExp * (score / 100));
+
+      // 4. Sử dụng LevelService để cộng Exp và tính Level
+      const levelResult = await addExperience(tx, userId, expGained, 'COMPLETED_LEARNING');
 
       return {
         score: progress.score,
@@ -90,7 +124,7 @@ export const getDictationById = async (req, res) => {
       data: {
         id: lesson.id,
         title: lesson.title,
-        videoUrl: lesson.videoUrl,
+        videoUrl: extractVideoId(lesson.videoUrl) || lesson.videoUrl,
         courseTitle: lesson.module.course.title,
         // Sau này contentText có thể chứa subtitle JSON
         subtitles: lesson.contentText ? JSON.parse(lesson.contentText) : []
