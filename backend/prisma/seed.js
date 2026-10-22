@@ -142,6 +142,7 @@ async function main() {
   console.log('--- Bat dau qua trinh Seeding EnglishHub ---');
 
   // Xoa du lieu cu
+  await prisma.auditLog.deleteMany({});
   await prisma.expLog.deleteMany({});
   await prisma.submissionFeedback.deleteMany({});
   await prisma.submission.deleteMany({});
@@ -170,6 +171,9 @@ async function main() {
       level: 6,
     },
   });
+  await prisma.auditLog.create({
+    data: { userId: admin.id, action: 'REGISTER_USER', details: 'Khoi tao tai khoan Admin he thong', ipAddress: '127.0.0.1' }
+  });
 
   // 2. 10 Giảng viên
   const instructors = [];
@@ -190,6 +194,9 @@ async function main() {
       }
     });
     instructors.push(teacher);
+    await prisma.auditLog.create({
+      data: { userId: teacher.id, action: 'REGISTER_USER', details: `Giang vien ${teacher.fullName} gia nhap he thong`, ipAddress: '127.0.0.1' }
+    });
   }
 
   // 3. 30 Học sinh
@@ -214,6 +221,9 @@ async function main() {
       }
     });
     students.push(s);
+    await prisma.auditLog.create({
+      data: { userId: s.id, action: 'REGISTER_USER', details: `Hoc sinh ${s.fullName} dang ky tai khoan`, ipAddress: '127.0.0.1' }
+    });
   }
 
   console.log('Dang tao cac khoa hoc theo Level (Admin quan ly)...');
@@ -238,6 +248,9 @@ async function main() {
       include: { modules: true }
     });
     adminCourses[lvl] = course;
+    await prisma.auditLog.create({
+      data: { userId: admin.id, action: 'CREATE_COURSE', targetId: course.id, details: `Tao khoa hoc trinh do ${lvl}`, ipAddress: '127.0.0.1' }
+    });
   }
 
   console.log('Dang trich xuat phu de va tao 120 bai hoc cho Admin...');
@@ -284,7 +297,7 @@ async function main() {
 
     lessonCounts[moduleId] = (lessonCounts[moduleId] || 0) + 1;
 
-    await prisma.lesson.create({
+    const lesson = await prisma.lesson.create({
       data: {
         moduleId: moduleId,
         title: vid.title,
@@ -296,6 +309,10 @@ async function main() {
       }
     });
 
+    await prisma.auditLog.create({
+      data: { userId: admin.id, action: 'CREATE_LESSON', targetId: lesson.id, details: `Them bai hoc: ${lesson.title}`, ipAddress: '127.0.0.1' }
+    });
+
     processed++;
   }
 
@@ -303,9 +320,11 @@ async function main() {
 
   console.log('Dang dang ky khoa hoc va tao tien trinh cho hoc sinh...');
   const allAdminCourses = Object.values(adminCourses);
+  let studentCount = 0;
+
   for (const s of students) {
+    studentCount++;
     let studentExp = 0;
-    // Moi hoc sinh dang ky ngau nhien 2-4 khoa hoc Level cua Admin
     const numToEnroll = 2 + Math.floor(Math.random() * 3);
     const shuffled = [...allAdminCourses].sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, numToEnroll);
@@ -317,7 +336,6 @@ async function main() {
 
       if (lessons.length === 0) continue;
 
-      // Gia lap hoan thanh 30-70% so bai hoc
       const numCompleted = Math.floor(lessons.length * (0.3 + Math.random() * 0.4));
       const completedLessons = lessons.slice(0, numCompleted);
 
@@ -351,13 +369,106 @@ async function main() {
       });
     }
 
-    // Cap nhat level dua tren EXP thuc te
     await prisma.user.update({
       where: { id: s.id },
       data: {
         totalExp: studentExp,
         level: Math.floor(studentExp / 1000) + 1
       }
+    });
+
+    if (studentCount % 5 === 0) {
+      console.log(`> Da xu ly tien trinh cho ${studentCount}/${students.length} hoc sinh...`);
+    }
+  }
+
+  console.log('Dang tao du lieu bai nop (Submissions) va Cham diem (Feedback)...');
+  for (let i = 0; i < 5; i++) {
+    const student = students[i];
+    const instructor = instructors[i % instructors.length];
+    const lesson = await prisma.lesson.findFirst({ where: { lessonType: 'PRACTICE' } });
+
+    if (lesson) {
+      const sub = await prisma.submission.create({
+        data: {
+          userId: student.id,
+          lessonId: lesson.id,
+          submissionType: 'WRITING',
+          contentText: 'Day la bai lam mau cua hoc sinh de kiem tra he thong cham diem.',
+          status: 'GRADED',
+          score: 8.5
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: { userId: student.id, action: 'SUBMIT_LESSON', targetId: lesson.id, details: `Hoc sinh nop bai cho: ${lesson.title}`, ipAddress: '127.0.0.1' }
+      });
+
+      const feedback = await prisma.submissionFeedback.create({
+        data: {
+          submissionId: sub.id,
+          instructorId: instructor.id,
+          rubricScores: { grammar: 8, vocabulary: 9, coherence: 8.5 },
+          feedbackText: 'Bai lam rat tot, can chu y hon ve cach dung tu noi.'
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: { userId: instructor.id, action: 'GRADE_SUBMISSION', targetId: sub.id, details: `Giang vien cham diem bai nop ID: ${sub.id}`, ipAddress: '127.0.0.1' }
+      });
+    }
+  }
+
+  console.log('Dang tao du lieu Vocab Decks (Bo tu vung mau)...');
+  const commonDeck = await prisma.vocabDeck.create({
+    data: {
+      title: '3000 Từ vựng Oxford thông dụng',
+      category: 'Oxford',
+      description: 'Danh sách các từ vựng thiết yếu nhất trong tiếng Anh theo chuẩn Oxford.',
+      thumbnail: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500',
+      words: {
+        create: [
+          {
+            word: 'Accomplish',
+            phonetic: '/əˈkʌmplɪʃ/',
+            meaning: 'Hoàn thành, đạt được',
+            definition: 'To succeed in doing something, especially after a lot of effort.',
+            example: 'I feel as though I\'ve accomplished very little today.',
+            imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500',
+            audioUrl: 'https://api.dictionaryapi.dev/media/pronunciations/en/accomplish-us.mp3'
+          },
+          {
+            word: 'Resilient',
+            phonetic: '/rɪˈzɪliənt/',
+            meaning: 'Kiên cường, mau phục hồi',
+            definition: 'Able to withstand or recover quickly from difficult conditions.',
+            example: 'She is a resilient girl - she won\'t let this defeat her.',
+            imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500',
+            audioUrl: 'https://api.dictionaryapi.dev/media/pronunciations/en/resilient-us.mp3'
+          }
+        ]
+      }
+    }
+  });
+
+  console.log('Dang tao du lieu Flashcards...');
+  for (let i = 0; i < 5; i++) {
+    const fc = await prisma.flashcardReview.create({
+      data: {
+        userId: students[i].id,
+        word: 'Persistence',
+        phonetic: '/pəˈsɪstəns/',
+        meaning: 'Sự kiên trì',
+        definition: 'Firm or obstinate continuance in a course of action in spite of difficulty or opposition.',
+        example: 'His persistence finally paid off when he got the job.',
+        imageUrl: 'https://images.unsplash.com/photo-1519834785169-98be25ec3f84?w=500',
+        audioUrl: 'https://api.dictionaryapi.dev/media/pronunciations/en/persistence-us.mp3',
+        intervalDays: 1,
+        easeFactor: 2.5
+      }
+    });
+    await prisma.auditLog.create({
+      data: { userId: students[i].id, action: 'ADD_FLASHCARD', targetId: fc.id, details: `Them tu moi vao Flashcards: ${fc.word}`, ipAddress: '127.0.0.1' }
     });
   }
 

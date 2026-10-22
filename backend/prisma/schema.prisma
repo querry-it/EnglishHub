@@ -19,6 +19,8 @@ model User {
   isApproved        Boolean              @default(true) @map("is_approved")
   totalExp          Int                  @default(0) @map("total_exp")
   level             Int                  @default(1) @map("level")
+  gems              Int                  @default(0) @map("gems")
+  lastCheckIn       DateTime?            @map("last_check_in") @db.Timestamptz(6)
   createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   courses           Course[]
   enrollments       Enrollment[]
@@ -29,8 +31,22 @@ model User {
   submissions       Submission[]
   progress          UserProgress[]
   expLogs           ExpLog[]
+  auditLogs         AuditLog[]
 
   @@map("users")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String   @db.VarChar(255)
+  targetId  String?  @map("target_id") @db.Uuid
+  details   String?  @db.Text
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
 }
 
 model ExpLog {
@@ -165,6 +181,10 @@ model FlashcardReview {
   word            String   @db.VarChar(100)
   phonetic        String?  @db.VarChar(100)
   meaning         String
+  definition      String?  @db.Text
+  example         String?  @db.Text
+  imageUrl        String?  @map("image_url") @db.VarChar(500)
+  audioUrl        String?  @map("audio_url") @db.VarChar(500)
   intervalDays    Int      @default(1) @map("interval_days")
   repetitionCount Int      @default(0) @map("repetition_count")
   easeFactor      Decimal  @default(2.50) @map("ease_factor") @db.Decimal(4, 2)
@@ -220,4 +240,33 @@ enum SubmissionType {
 enum SubmissionStatus {
   PENDING
   GRADED
+  REJECTED
+}
+
+model VocabDeck {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String             @db.VarChar(255)
+  category    String?            @db.VarChar(100)
+  description String?            @db.Text
+  thumbnail   String?            @db.VarChar(500)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  words       MasterVocabulary[]
+
+  @@map("vocab_decks")
+}
+
+model MasterVocabulary {
+  id         String    @id @default(uuid()) @db.Uuid
+  deckId     String    @map("deck_id") @db.Uuid
+  word       String    @db.VarChar(100)
+  phonetic   String?   @db.VarChar(100)
+  meaning    String    @db.Text
+  definition String?   @db.Text
+  example    String?   @db.Text
+  imageUrl   String?   @map("image_url") @db.VarChar(500)
+  audioUrl   String?   @map("audio_url") @db.VarChar(500)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deck       VocabDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@map("master_vocabulary")
 }

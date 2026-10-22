@@ -61,6 +61,7 @@ const ADMIN_SECTIONS = [
       { label: 'Quản lý Giảng viên',   icon: GraduationCap,   path: '/admin/instructors' },
       { label: 'Quản lý Khóa học',     icon: BookOpen,        path: '/admin/courses' },
       { label: 'Quản lý Bài học',      icon: ClipboardList,   path: '/admin/lessons' },
+      { label: 'Quản lý Từ vựng',      icon: FileEdit,        path: '/admin/vocabulary' },
       { label: 'Quản lý Blog',         icon: FileText,        path: '/admin/blog' },
       { label: 'Thông báo',            icon: Bell,            path: '/admin/notifications' },
       { label: 'Nhật ký logs',         icon: Activity,        path: '/admin/logs' },

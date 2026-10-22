@@ -5,9 +5,11 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import dictationRoutes from './routes/dictationRoutes.js';
 import lessonRoutes from './routes/lessonRoutes.js';
-
-// import courseRoutes from './routes/courseRoutes.js';
-// import vocabRoutes from './routes/vocabRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import instructorRoutes from './routes/instructorRoutes.js';
+import submissionRoutes from './routes/submissionRoutes.js';
+import flashcardRoutes from './routes/flashcardRoutes.js';
+import vocabRoutes from './routes/vocabRoutes.js';
 
 dotenv.config();
 
@@ -17,20 +19,24 @@ const PORT = process.env.PORT || 5000;
 // Middlewares
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-  credentials: true 
+  credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dictation', dictationRoutes);
 app.use('/api/lessons', lessonRoutes);
-// app.use('/api/courses', courseRoutes);
-// app.use('/api/vocab', vocabRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/instructor', instructorRoutes);
+app.use('/api/submissions', submissionRoutes);
+app.use('/api/flashcards', flashcardRoutes);
+app.use('/api/vocabulary', vocabRoutes);
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'Express Backend API Server running' });
+  res.json({ message: 'EnglishHub Backend API Server is running' });
 });
 
 // Middleware xử lý lỗi toàn cục (Global Error Handler)

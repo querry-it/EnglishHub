@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Gamepad2, HelpCircle, Trophy, Sparkles, Plus, Search, 
   FolderPlus, Crown, Award, CheckCircle2, Zap, TrendingUp, Target, 
@@ -10,12 +10,17 @@ import {
 import AppMascot from '../../components/AppMascot';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import axios from 'axios';
 
 export default function Vocabulary() {
   const navigate = useNavigate();
   const { user , openProModal } = useAuth();
-  const [activeDeck, setActiveDeck] = useState(null); // null = catalog view, object = active learning study studio
+  const [activeDeck, setActiveDeck] = useState(null);
+  const [deckDetail, setDeckDetail] = useState(null);
   const [selectedTag, setSelectedTag] = useState('Tất cả');
+  const [decks, setDecks] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const [isCreateDeckModalOpen, setIsCreateDeckModalOpen] = useState(false);
   const [isSrInfoModalOpen, setIsSrInfoModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -32,7 +37,7 @@ export default function Vocabulary() {
   const [feedbackStatus, setFeedbackStatus] = useState(null); // null | 'success' | 'error' | 'revealed'
   const [selectedQuizOption, setSelectedQuizOption] = useState(null);
   
-  // Speaking / Recording States in 'repeat' mode
+  // Speaking / Recording States
   const [isRecordingWord, setIsRecordingWord] = useState(false);
   const [hasRecordedWord, setHasRecordedWord] = useState(false);
   const [isPlayingRecordedWord, setIsPlayingRecordedWord] = useState(false);
@@ -45,7 +50,7 @@ export default function Vocabulary() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [reviewCount, setReviewCount] = useState(0);
 
-  // Settings Modal State (Matching Screenshot 3)
+  // Settings
   const [settings, setSettings] = useState({
     targetLang: 'vi',
     showTranslation: true,
@@ -53,6 +58,87 @@ export default function Vocabulary() {
     soundEffects: true,
     voiceAccent: 'US'
   });
+
+  // Fetch Decks
+  useEffect(() => {
+    const fetchDecks = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/vocabulary/decks`, {
+          params: { category: selectedTag }
+        });
+        setDecks(response.data);
+      } catch (error) {
+        console.error("Error fetching decks:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDecks();
+  }, [selectedTag]);
+
+  // Fetch Deck Details when activeDeck changes
+  useEffect(() => {
+    if (activeDeck && user) {
+      const fetchDetail = async () => {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/vocabulary/decks/${activeDeck.id}`);
+          setDeckDetail(response.data);
+          setCardIndex(0);
+        } catch (error) {
+          console.error("Error fetching deck detail:", error);
+        }
+      };
+      fetchDetail();
+    } else {
+      setDeckDetail(null);
+    }
+  }, [activeDeck, user]);
+
+  const filterTags = [
+    'Tất cả', 'General', 'TOEIC', 'IELTS', 'Oxford', 'Communication', 'Business', 'Academic'
+  ];
+
+  // Logic to process deckDetail.words into quiz options etc.
+  const processWords = (words) => {
+    if (!words || words.length === 0) return [];
+
+    return words.map(w => {
+      // Create quiz options by picking random words from the same deck
+      const otherWords = words.filter(ow => ow.id !== w.id);
+      const randomOthers = otherWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+      const quizOptions = [
+        { key: 'A', text: w.word, isCorrect: true },
+        ...randomOthers.map((ow, idx) => ({ key: String.fromCharCode(66 + idx), text: ow.word, isCorrect: false }))
+      ].sort(() => 0.5 - Math.random());
+
+      const quizReverseOptions = [
+        { key: 'A', text: w.meaning, isCorrect: true },
+        ...randomOthers.map((ow, idx) => ({ key: String.fromCharCode(66 + idx), text: ow.meaning, isCorrect: false }))
+      ].sort(() => 0.5 - Math.random());
+
+      return {
+        ...w,
+        englishWord: w.word,
+        vietnameseWord: w.meaning,
+        pos: 'Từ vựng', // Fallback as DB might not have POS yet
+        englishDef: w.definition,
+        vietDef: w.meaning,
+        exampleEN: w.example,
+        exampleVI: '', // Fallback
+        mask: '*'.repeat(w.word.length),
+        image: w.imageUrl || 'https://picsum.photos/300/200',
+        ipaUS: w.phonetic,
+        ipaUK: w.phonetic,
+        quizOptions,
+        quizReverseOptions
+      };
+    });
+  };
+
+  const currentCards = deckDetail ? processWords(deckDetail.words) : [];
+  const activeCard = currentCards.length > 0 ? currentCards[cardIndex % currentCards.length] : null;
 
   // Feedback form state
   const [feedbackMsg, setFeedbackMsg] = useState('');
@@ -63,182 +149,51 @@ export default function Vocabulary() {
   const [newDeckDesc, setNewDeckDesc] = useState('');
   const [userDecks, setUserDecks] = useState([]);
 
-  const filterTags = [
-    'Tất cả', '#a1', '#a2', '#b1', '#b2', '#basic', '#c1', 
-    '#common', '#communication', '#conversation', '#essential', 
-    '#ets', '#idioms', '#ielts', '#oxford', '#sat', '#thpt', '#toefl', '#toeic'
-  ];
-
-  const commonDecks = [
-    {
-      id: 'common-1',
-      title: '1000 từ tiếng Anh thông dụng',
-      cardsCount: 992,
-      learners: '398,687',
-      isPro: false,
-      color: 'bg-teal-500',
-      tag: '#common'
-    },
-    {
-      id: 'common-2',
-      title: 'Từ vựng tiếng Anh giao tiếp',
-      cardsCount: 326,
-      learners: '101,502',
-      isPro: false,
-      color: 'bg-amber-500',
-      tag: '#communication'
+  // SM-2 Buttons
+  const handleSM2Review = async (quality) => {
+    if (!activeCard || !user) {
+      setCardIndex((prev) => (prev + 1) % currentCards.length);
+      setIsFlipped(false);
+      return;
     }
-  ];
 
-  const oxfordDecks = [
-    {
-      id: 'oxford-1',
-      title: '3000 Từ Vựng Oxford A1',
-      cardsCount: 759,
-      learners: '103,461',
-      isPro: false,
-      color: 'bg-amber-500',
-      tag: '#a1'
-    },
-    {
-      id: 'oxford-2',
-      title: '3000 Từ Vựng Oxford A2',
-      cardsCount: 827,
-      learners: '48,697',
-      isPro: false,
-      color: 'bg-orange-500',
-      tag: '#a2'
-    },
-    {
-      id: 'oxford-3',
-      title: '3000 Từ Vựng Oxford B1',
-      cardsCount: 739,
-      learners: '5,888',
-      isPro: true,
-      color: 'bg-teal-600',
-      tag: '#b1'
-    },
-    {
-      id: 'oxford-4',
-      title: '3000 Từ Vựng Oxford B2',
-      cardsCount: 715,
-      learners: '3,355',
-      isPro: true,
-      color: 'bg-emerald-600',
-      tag: '#b2'
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/flashcards/review`, {
+        word: activeCard.englishWord,
+        quality: quality
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setIsFlipped(false);
+      setCardIndex((prev) => (prev + 1) % currentCards.length);
+      setReviewCount((prev) => prev + 1);
+    } catch (error) {
+      console.error("SM-2 API Error:", error);
+      // Fallback transition
+      setIsFlipped(false);
+      setCardIndex((prev) => (prev + 1) % currentCards.length);
     }
-  ];
-
-  const subTopics = [
-    { id: 1, name: 'Gia đình', count: '1/49 thẻ', progress: '2%', icon: '👨‍👩‍👧‍👦', totalCards: 49 },
-    { id: 2, name: 'Trường học', count: '0/50 thẻ', progress: null, icon: '🏫', totalCards: 50 },
-    { id: 3, name: 'Công việc', count: '0/50 thẻ', progress: null, icon: '🏢', totalCards: 50 },
-    { id: 4, name: 'Nghề nghiệp', count: '0/50 thẻ', progress: null, icon: '👩‍⚕️', totalCards: 50 },
-    { id: 5, name: 'Đồ ăn & Thức uống', count: '0/51 thẻ', progress: null, icon: '🥗', totalCards: 51 },
-    { id: 6, name: 'Du lịch', count: '0/50 thẻ', progress: null, icon: '✈️', totalCards: 50 },
-    { id: 7, name: 'Mua sắm', count: '0/50 thẻ', progress: null, icon: '🛍️', totalCards: 50 },
-    { id: 8, name: 'Sức khỏe', count: '0/48 thẻ', progress: null, icon: '🏥', totalCards: 48 },
-    { id: 9, name: 'Thời tiết', count: '0/49 thẻ', progress: null, icon: '🌤️', totalCards: 49 }
-  ];
-
-  const subTopicCards = {
-    0: [
-      {
-        id: 101,
-        vietnameseWord: 'anh chị em ruột',
-        pos: 'Danh từ',
-        englishWord: 'siblings',
-        englishDef: "A person's brothers and sisters. Children with the same parents.",
-        vietDef: 'Anh chị em ruột của một người. Những đứa trẻ có cùng cha mẹ.',
-        exampleEN: 'I have two siblings, a brother and a sister.',
-        exampleVI: 'Tôi có hai anh chị em, một anh trai và một em gái.',
-        mask: '********',
-        image: 'https://images.unsplash.com/photo-1485546246426-74dc88dec4d9?auto=format&fit=crop&w=400&q=80',
-        ipaUS: '/ˈsɪb.lɪŋz/',
-        ipaUK: '/ˈsɪb.lɪŋz/',
-        quizOptions: [
-          { key: 'A', text: 'siblings', isCorrect: true },
-          { key: 'B', text: 'airport', isCorrect: false },
-          { key: 'C', text: 'barcode', isCorrect: false },
-          { key: 'D', text: 'menu', isCorrect: false }
-        ],
-        quizReverseOptions: [
-          { key: 'A', text: 'anh chị em ruột', isCorrect: true },
-          { key: 'B', text: 'sân bay', isCorrect: false },
-          { key: 'C', text: 'mã vạch barcode', isCorrect: false },
-          { key: 'D', text: 'thực đơn nhà hàng', isCorrect: false }
-        ]
-      },
-      {
-        id: 102,
-        vietnameseWord: 'cha mẹ',
-        pos: 'Danh từ',
-        englishWord: 'parents',
-        englishDef: 'A father or mother of a person or animal.',
-        vietDef: 'Bố mẹ, cha mẹ của một người.',
-        exampleEN: 'My parents live in Hanoi.',
-        exampleVI: 'Cha mẹ tôi sống ở Hà Nội.',
-        mask: '*******',
-        image: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=400&q=80',
-        ipaUS: '/ˈpeə.rənts/',
-        ipaUK: '/ˈpeə.rənts/',
-        quizOptions: [
-          { key: 'A', text: 'parents', isCorrect: true },
-          { key: 'B', text: 'children', isCorrect: false },
-          { key: 'C', text: 'cousins', isCorrect: false },
-          { key: 'D', text: 'colleagues', isCorrect: false }
-        ],
-        quizReverseOptions: [
-          { key: 'A', text: 'cha mẹ', isCorrect: true },
-          { key: 'B', text: 'con cái', isCorrect: false },
-          { key: 'C', text: 'họ hàng', isCorrect: false },
-          { key: 'D', text: 'đồng nghiệp', isCorrect: false }
-        ]
-      },
-      {
-        id: 103,
-        vietnameseWord: 'ông bà',
-        pos: 'Danh từ',
-        englishWord: 'grandparents',
-        englishDef: "The parents of a person's father or mother.",
-        vietDef: 'Ông bà nội hoặc ông bà ngoại.',
-        exampleEN: 'We visit our grandparents every weekend.',
-        exampleVI: 'Chúng tôi thăm ông bà mỗi cuối tuần.',
-        mask: '************',
-        image: 'https://images.unsplash.com/photo-1542037104857-ffbb0b9155fb?auto=format&fit=crop&w=400&q=80',
-        ipaUS: '/ˈɡræn.peə.rənts/',
-        ipaUK: '/ˈɡræn.peə.rənts/',
-        quizOptions: [
-          { key: 'A', text: 'grandparents', isCorrect: true },
-          { key: 'B', text: 'uncles', isCorrect: false },
-          { key: 'C', text: 'aunts', isCorrect: false },
-          { key: 'D', text: 'nephews', isCorrect: false }
-        ],
-        quizReverseOptions: [
-          { key: 'A', text: 'ông bà', isCorrect: true },
-          { key: 'B', text: 'chú bác', isCorrect: false },
-          { key: 'C', text: 'cô dì', isCorrect: false },
-          { key: 'D', text: 'cháu trai', isCorrect: false }
-        ]
-      }
-    ]
   };
 
-  const currentCards = subTopicCards[selectedSubTopicIndex] || subTopicCards[0];
-  const activeCard = currentCards[cardIndex % currentCards.length];
+  const subTopics = [
+    { id: 1, name: 'Tổng quan', count: deckDetail?.words?.length || 0, totalCards: deckDetail?.words?.length || 0, icon: '📊', progress: '0%' },
+    { id: 2, name: 'Từ mới', count: deckDetail?.words?.length || 0, totalCards: deckDetail?.words?.length || 0, icon: '🆕', progress: '0%' },
+    { id: 3, name: 'Đang ôn', count: '0 từ', totalCards: 0, icon: '🔄', progress: '0%' },
+    { id: 4, name: 'Đã thuộc', count: '0 từ', totalCards: 0, icon: '✅', progress: '0%' },
+  ];
 
-  // Text-To-Speech Pronunciation Helper
   const speakText = (text, lang = 'en-US') => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = settings.voiceAccent === 'UK' ? 'en-GB' : 'en-US';
-      window.speechSynthesis.speak(utterance);
-    }
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleCheckAnswer = () => {
-    if (!inputGuessText.trim()) return;
+    if (!inputGuessText.trim() || !activeCard) return;
     if (inputGuessText.trim().toLowerCase() === activeCard.englishWord.toLowerCase()) {
       setFeedbackStatus('success');
       setTimeout(() => {
@@ -254,6 +209,7 @@ export default function Vocabulary() {
   };
 
   const handleDontKnow = () => {
+    if (!activeCard) return;
     setFeedbackStatus('revealed');
     setInputGuessText(activeCard.englishWord);
     setTimeout(() => {
@@ -286,18 +242,7 @@ export default function Vocabulary() {
   const handleCreateDeckSubmit = (e) => {
     e.preventDefault();
     if (!newDeckTitle.trim()) return;
-    const created = {
-      id: Date.now(),
-      title: newDeckTitle,
-      desc: newDeckDesc || 'Bộ thẻ tự tạo',
-      cardsCount: 0,
-      learners: '1',
-      isPro: false,
-      color: 'bg-indigo-600'
-    };
-    setUserDecks([...userDecks, created]);
-    setNewDeckTitle('');
-    setNewDeckDesc('');
+    // Logic to call API for creating deck would go here
     setIsCreateDeckModalOpen(false);
   };
 
@@ -322,10 +267,16 @@ export default function Vocabulary() {
           : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-xl'
       }`}
     >
-      <div className={`relative h-44 rounded-2xl ${deck.color || 'bg-slate-800'} p-4 flex flex-col justify-between overflow-hidden shadow-inner text-white`}>
-        <div className="flex items-center justify-between z-10">
+      <div className={`relative h-44 rounded-2xl ${deck.color || 'bg-slate-800'} p-0 flex flex-col justify-between overflow-hidden shadow-inner text-white`}>
+        {deck.thumbnail ? (
+           <img src={deck.thumbnail} alt={deck.title} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-500" />
+        ) : (
+           <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-700" />
+        )}
+
+        <div className="flex items-center justify-between z-10 p-4">
           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-black/30 backdrop-blur-md">
-            FLASHCARD DECK
+            {deck.category || 'GENERAL'}
           </span>
           {deck.isPro && (
             <span className="px-2 py-0.5 rounded bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-1 shadow-xs">
@@ -334,8 +285,8 @@ export default function Vocabulary() {
           )}
         </div>
 
-        <div className="z-10 my-auto text-center">
-          <h3 className="text-lg font-black tracking-tight leading-snug drop-shadow-sm">
+        <div className="z-10 my-auto text-center px-4">
+          <h3 className="text-lg font-black tracking-tight leading-snug drop-shadow-lg">
             {deck.title}
           </h3>
         </div>
@@ -828,7 +779,7 @@ export default function Vocabulary() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       <button
-                        onClick={() => { setIsFlipped(false); setCardIndex((prev) => (prev + 1) % currentCards.length); }}
+                        onClick={() => handleSM2Review(0)}
                         className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 font-black text-xs flex flex-col items-center transition-all"
                       >
                         <span>🔴 Again</span>
@@ -836,7 +787,7 @@ export default function Vocabulary() {
                       </button>
 
                       <button
-                        onClick={() => { setIsFlipped(false); setCardIndex((prev) => (prev + 1) % currentCards.length); }}
+                        onClick={() => handleSM2Review(2)}
                         className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-black text-xs flex flex-col items-center transition-all"
                       >
                         <span>🟠 Hard</span>
@@ -844,7 +795,7 @@ export default function Vocabulary() {
                       </button>
 
                       <button
-                        onClick={() => { setIsFlipped(false); setCardIndex((prev) => (prev + 1) % currentCards.length); }}
+                        onClick={() => handleSM2Review(4)}
                         className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900 font-black text-xs flex flex-col items-center transition-all"
                       >
                         <span>🔵 Good</span>
@@ -852,7 +803,7 @@ export default function Vocabulary() {
                       </button>
 
                       <button
-                        onClick={() => { setIsFlipped(false); setCardIndex((prev) => (prev + 1) % currentCards.length); }}
+                        onClick={() => handleSM2Review(5)}
                         className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 font-black text-xs flex flex-col items-center transition-all"
                       >
                         <span>🟢 Easy</span>
@@ -1532,25 +1483,27 @@ export default function Vocabulary() {
           <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                Từ Vựng Tiếng Anh Thông Dụng <span className="text-xs font-bold text-slate-400">(2 bộ thẻ)</span>
+                Bộ sưu tập từ vựng <span className="text-xs font-bold text-slate-400">({decks.length} bộ thẻ)</span>
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {commonDecks.map(renderDeckCard)}
-            </div>
-          </div>
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="h-64 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-3xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {decks.map(renderDeckCard)}
+              </div>
+            )}
 
-          <div className="space-y-4 pt-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                Từ Vựng Oxford <span className="text-xs font-bold text-slate-400">(4 bộ thẻ)</span>
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {oxfordDecks.map(renderDeckCard)}
-            </div>
+            {decks.length === 0 && !loading && (
+              <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                <p className="text-slate-500 font-bold">Không tìm thấy bộ từ vựng nào trong danh mục này.</p>
+              </div>
+            )}
           </div>
 
         </div>

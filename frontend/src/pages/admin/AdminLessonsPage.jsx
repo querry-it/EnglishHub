@@ -249,7 +249,20 @@ export default function AdminLessonsPage() {
 
       {/* Course List - Phân theo Trình độ */}
       <div className="space-y-6">
-        {courses.length === 0 ? (
+        {isLoading && courses.length === 0 ? (
+          <div className="space-y-6">
+            {[1, 2].map((i) => (
+              <div key={i} className="space-y-4 animate-pulse">
+                <div className="h-16 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl w-full"></div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 pl-4">
+                  {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="h-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : courses.length === 0 ? (
           <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200">
             <Video className="w-12 h-12 text-slate-300 mx-auto mb-2" />
             <p className="text-slate-500 font-bold text-sm">Chưa có bài học nào được tạo.</p>

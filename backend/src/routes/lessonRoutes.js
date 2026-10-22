@@ -6,7 +6,8 @@ import {
   getLessonsForStudent,
   updateLesson,
   deleteLesson,
-  getLessonDetail
+  getLessonDetail,
+  getUserProgress
 } from '../controllers/lessonController.js';
 import { getYoutubeTranscript, extractVideoId } from '../services/youtubeService.js';
 
@@ -17,6 +18,9 @@ router.get('/', getLessonsForStudent);
 
 // Route lay danh sach tat ca khoa hoc cho Admin
 router.get('/admin/all', verifyToken, authorize('ADMIN'), getAllLessonsForAdmin);
+
+// Route lấy tiến độ học tập của User
+router.get('/my-progress', verifyToken, getUserProgress);
 
 // Route lay chi tiet mot bai hoc
 router.get('/:id', verifyToken, getLessonDetail);

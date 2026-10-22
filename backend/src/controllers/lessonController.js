@@ -1,10 +1,12 @@
 import prisma from '../config/prisma.js';
 import { getYoutubeTranscript, extractVideoId } from '../services/youtubeService.js';
+import { logAction } from '../services/auditService.js';
 
 export const createLesson = async (req, res) => {
   try {
     const { title, videoUrl, level, lessonType, transcript } = req.body;
     const adminId = req.user.id;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
     // Đảm bảo luôn lấy ID sạch từ URL YouTube
     const videoId = extractVideoId(videoUrl);
@@ -111,6 +113,15 @@ export const createLesson = async (req, res) => {
       }
     });
 
+    // Ghi Log Audit
+    await logAction({
+      userId: adminId,
+      action: 'CREATE_LESSON',
+      targetId: newLesson.id,
+      details: `Tạo bài học: ${title} (Level: ${level})`,
+      ipAddress
+    });
+
     res.status(201).json({
       success: true,
       message: 'Tao bai hoc thanh cong!',
@@ -126,6 +137,14 @@ export const getAllLessonsForAdmin = async (req, res) => {
   try {
     const courses = await prisma.course.findMany({
       include: {
+        instructor: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true
+          }
+        },
         modules: {
           include: {
             lessons: true
@@ -142,41 +161,23 @@ export const getAllLessonsForAdmin = async (req, res) => {
       return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
     });
 
-    // Format lai du lieu cho de dung o Frontend
-    const formatted = sortedCourses.map(c => {
-      const lessons = [];
-      if (c.modules) {
-        c.modules.forEach(m => {
-          if (m.lessons) {
-            m.lessons.forEach(l => {
-              lessons.push({
-                ...l,
-                videoUrl: extractVideoId(l.videoUrl) || l.videoUrl, // Đảm bảo trả về ID sạch
-                level: c.level,
-                courseTitle: c.title
-              });
-            });
-          }
-        });
-      }
-      return {
-        id: c.id,
-        title: c.title,
-        level: c.level,
-        modulesCount: c.modules?.length || 0,
-        lessonsCount: lessons.length,
-        lessons: lessons
-      };
-    });
+    const formattedCourses = sortedCourses.map(course => ({
+      id: course.id,
+      title: course.title,
+      level: course.level,
+      instructor: course.instructor,
+      modulesCount: course.modules.length,
+      lessonsCount: course.modules.reduce((acc, m) => acc + m.lessons.length, 0),
+      lessons: course.modules.flatMap(m => m.lessons.map(l => ({ ...l, moduleTitle: m.title })))
+    }));
 
-    res.json({ success: true, courses: formatted });
+    res.json({
+      success: true,
+      courses: formattedCourses
+    });
   } catch (error) {
     console.error('Lỗi getAllLessonsForAdmin:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi tải danh sách bài học (Admin)',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Lỗi khi lấy danh sách khóa học' });
   }
 };
 
@@ -310,6 +311,7 @@ export const updateLesson = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, videoUrl, level, lessonType, transcript } = req.body;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
     // 1. Chuẩn hóa Video ID
     let videoId = undefined;
@@ -362,6 +364,15 @@ export const updateLesson = async (req, res) => {
       }
     });
 
+    // Ghi Log Audit
+    await logAction({
+      userId: req.user.id,
+      action: 'UPDATE_LESSON',
+      targetId: updatedLesson.id,
+      details: `Cập nhật bài học: ${updatedLesson.title}`,
+      ipAddress
+    });
+
     res.json({ success: true, message: 'Cập nhật bài học thành công!', lesson: updatedLesson });
   } catch (error) {
     console.error('Lỗi khi cập nhật bài học:', error);
@@ -372,11 +383,87 @@ export const updateLesson = async (req, res) => {
 export const deleteLesson = async (req, res) => {
   try {
     const { id } = req.params;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    const lesson = await prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy bài học' });
+    }
+
     await prisma.lesson.delete({
       where: { id: id }
     });
+
+    // Ghi Log Audit
+    await logAction({
+      userId: req.user.id,
+      action: 'DELETE_LESSON',
+      targetId: id,
+      details: `Xóa bài học: ${lesson.title}`,
+      ipAddress
+    });
+
     res.json({ success: true, message: 'Da xoa bai hoc' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Loi khi xoa bai hoc' });
+  }
+};
+
+export const getUserProgress = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { status } = req.query; // 'completed' or 'learning'
+
+    const progress = await prisma.userProgress.findMany({
+      where: {
+        userId: userId,
+        ...(status === 'completed' ? { completed: true } : { completed: false })
+      },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            videoUrl: true,
+            duration: true,
+            lessonType: true,
+            module: {
+              select: {
+                course: {
+                  select: {
+                    level: true,
+                    title: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      }
+    });
+
+    const formatted = progress.map(p => ({
+      id: p.lesson.id,
+      title: p.lesson.title,
+      videoUrl: extractVideoId(p.lesson.videoUrl) || p.lesson.videoUrl,
+      duration: p.lesson.duration,
+      lessonType: p.lesson.lessonType,
+      score: p.score,
+      completed: p.completed,
+      updatedAt: p.updatedAt,
+      level: p.lesson.module.course.level,
+      courseTitle: p.lesson.module.course.title
+    }));
+
+    res.json({
+      success: true,
+      progress: formatted
+    });
+  } catch (error) {
+    console.error('Lỗi getUserProgress:', error);
+    res.status(500).json({ success: false, message: 'Lỗi khi tải tiến độ học tập' });
   }
 };
