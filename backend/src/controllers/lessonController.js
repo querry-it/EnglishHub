@@ -467,3 +467,26 @@ export const getUserProgress = async (req, res) => {
     res.status(500).json({ success: false, message: 'Lỗi khi tải tiến độ học tập' });
   }
 };
+
+export const extractTranscript = async (req, res) => {
+  try {
+    const { videoUrl } = req.body;
+    if (!videoUrl) return res.status(400).json({ success: false, message: 'Thiếu Link YouTube' });
+
+    const videoId = extractVideoId(videoUrl);
+    const result = await getYoutubeTranscript(videoId);
+
+    if (result && result.transcript && result.transcript.length > 0) {
+      return res.json({
+        success: true,
+        transcript: result.transcript,
+        duration: result.duration
+      });
+    }
+    res.status(404).json({ success: false, message: 'Không tìm thấy phụ đề cho video này!' });
+  } catch (error) {
+    console.error('Lỗi extractTranscript:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
