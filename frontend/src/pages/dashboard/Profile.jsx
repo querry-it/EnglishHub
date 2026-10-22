@@ -481,38 +481,6 @@ export default function Profile() {
                 </div>
               )}
 
-              {/* PREMIUM STATUS CARD */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-amber-500" />
-                    <span className="font-extrabold text-xs text-slate-900 dark:text-white">
-                      Trạng thái Premium
-                    </span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-extrabold text-[11px]">
-                    Chưa kích hoạt
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-                  <span>Tổng số tháng Premium</span>
-                  <span className="font-black text-slate-800 dark:text-slate-200">0</span>
-                </div>
-
-                <p className="text-xs font-semibold text-slate-400">
-                  Chưa phải thành viên Premium
-                </p>
-
-                <button
-                  onClick={openProModal}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
-                >
-                  <Crown className="w-4 h-4 text-amber-300 fill-amber-300" />
-                  MỞ KHÓA NGAY
-                </button>
-              </div>
-
               {/* STATS BADGES BAR */}
               <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 font-extrabold text-xs text-slate-700 dark:text-slate-300">
                 <div className="flex items-center gap-1.5">

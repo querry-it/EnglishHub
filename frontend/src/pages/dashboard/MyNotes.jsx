@@ -88,22 +88,6 @@ export default function MyNotes() {
             </p>
           </div>
 
-          {/* ================= 2. FREE PLAN LIMIT STORAGE BANNER ================= */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-sky-50 dark:bg-sky-950/60 border-2 border-sky-200 dark:border-sky-800/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-sky-900 dark:text-sky-200">
-              <Sparkles className="w-4 h-4 text-sky-500 shrink-0" />
-              <span>Gói miễn phí: bạn được lưu tối đa 100 ghi chú. Nâng cấp Premium để lưu lên đến 5000 ghi chú.</span>
-            </div>
-
-            <button
-              onClick={openProModal}
-              className="px-5 py-2.5 rounded-2xl bg-[#1E2540] dark:bg-indigo-600 hover:bg-[#151a2e] text-white font-black text-xs uppercase tracking-wider shadow-md transition-transform active:scale-98 shrink-0 flex items-center gap-1.5 self-end sm:self-auto"
-            >
-              <Crown className="w-4 h-4 text-amber-300 fill-current" />
-              <span>NÂNG CẤP</span>
-            </button>
-          </div>
-
           {/* Search Filter Box */}
           <div className="relative">
             <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />

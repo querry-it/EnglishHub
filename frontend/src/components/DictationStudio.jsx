@@ -19,7 +19,7 @@ export default function DictationStudio({ lesson }) {
   const [userAnswer, setUserAnswer] = useState('');
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
-  const [isProLocked, setIsProLocked] = useState(lesson?.isPro || false);
+  const [isProLocked, setIsProLocked] = useState(false);
 
   // Result & Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -366,11 +366,6 @@ export default function DictationStudio({ lesson }) {
           <span>&gt;</span>
           <span className="text-slate-700 dark:text-slate-300">{currentLesson.category}</span>
           <span>&gt;</span>
-          {currentLesson.isPro && (
-            <span className="px-1.5 py-0.5 rounded bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-0.5">
-              <Crown className="w-3 h-3 fill-current" /> PRO
-            </span>
-          )}
           <span className="font-extrabold text-slate-900 dark:text-white">{currentLesson.title}</span>
           <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white font-extrabold text-[10px] ml-1">
             {currentLesson.level}

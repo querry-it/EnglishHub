@@ -36,7 +36,7 @@ export default function AppHeader({ isPublic = false }) {
   };
 
   const isMoreActive = [
-    '/exams?type=toeic', '/games', '/workspace', '/community', '/shop'
+    '/exams?type=toeic', '/games', '/workspace'
   ].some(p => isLinkActive(p));
 
   const toggleTheme = () => {
@@ -172,28 +172,6 @@ export default function AppHeader({ isPublic = false }) {
             >
               Ôn tập
             </Link>
-            <Link
-              to="/community"
-              onClick={() => setIsMoreOpen(false)}
-              className={`block px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
-                isLinkActive('/community')
-                  ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Cộng đồng
-            </Link>
-            <Link
-              to="/shop"
-              onClick={() => setIsMoreOpen(false)}
-              className={`block px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
-                isLinkActive('/shop')
-                  ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Đổi quà
-            </Link>
           </div>
         )}
       </div>
@@ -209,9 +187,11 @@ export default function AppHeader({ isPublic = false }) {
         <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#5c4033] text-white flex items-center justify-center font-extrabold text-sm border-2 border-white dark:border-slate-800 shadow-md">
           {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
         </div>
-        <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-black border border-slate-300 dark:border-slate-700 shadow-xs">
-          Lv.{user?.level || 1}
-        </span>
+        {user?.role !== 'INSTRUCTOR' && user?.role !== 'ADMIN' && (
+          <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-black border border-slate-300 dark:border-slate-700 shadow-xs">
+            Lv.{user?.level || 1}
+          </span>
+        )}
       </button>
 
       {isProfileOpen && (
@@ -319,16 +299,6 @@ export default function AppHeader({ isPublic = false }) {
             
             {user ? (
               <>
-                {/* PRO Pill Button */}
-                <button
-                  type="button"
-                  onClick={() => openProModal()}
-                  className="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-purple-600 hover:opacity-95 text-white font-extrabold text-xs sm:text-sm shadow-md inline-flex items-center gap-2 transition-transform hover:scale-105 shrink-0 whitespace-nowrap"
-                >
-                  <Crown className="w-4 h-4 text-amber-300 fill-amber-300 shrink-0" />
-                  <span className="whitespace-nowrap">Mở khóa PRO</span>
-                </button>
-
                 {/* Bell */}
                 <button 
                   title="Thông báo"
@@ -428,15 +398,6 @@ export default function AppHeader({ isPublic = false }) {
                       <Target className="w-4 h-4 text-amber-700 dark:text-amber-500 shrink-0" />
                       <span className="text-amber-700 dark:text-amber-400">0/3</span>
                     </div>
-
-                    {/* PRO Badge */}
-                    <button
-                      onClick={() => openProModal()}
-                      className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-full px-3.5 py-1 text-xs sm:text-sm font-black shadow-xs transition-transform hover:scale-105 shrink-0 whitespace-nowrap"
-                    >
-                      <Crown className="w-3.5 h-3.5 text-white fill-white/20 shrink-0" />
-                      <span>PRO</span>
-                    </button>
 
                     {/* Streak Badge (🔥) */}
                     <div

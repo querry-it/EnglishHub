@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, Search, UserX, UserCheck,
   Check, RefreshCw, BookOpen,
-  Mail, X
+  Mail, X, FileSpreadsheet, FileText,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
-import api from '../../api/axios'; // Sử dụng instance api đã cấu hình sẵn
+import api from '../../api/axios';
+import { exportToCSV, exportToDOC } from '../../utils/exportUtils';
 
 export default function AdminUsersPage() {
   const [students, setStudents] = useState([]);
@@ -13,6 +15,10 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'BLOCKED'
   const [toastMessage, setToastMessage] = useState(null);
   const [selectedUserCourses, setSelectedUserCourses] = useState(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -66,6 +72,69 @@ export default function AdminUsersPage() {
     s.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Xuất file CSV
+  const handleExportCSV = () => {
+    if (filteredStudents.length === 0) {
+      showToast('⚠️ Không có dữ liệu học viên để xuất file!');
+      return;
+    }
+    const headers = ['Mã học viên', 'Họ và tên', 'Email', 'Trình độ', 'Số khóa học', 'Danh sách khóa học', 'Trạng thái'];
+    const rows = filteredStudents.map(s => [
+      s.id,
+      s.fullName,
+      s.email,
+      s.level,
+      s.enrolledCourses?.length || 0,
+      (s.enrolledCourses || []).join('; '),
+      s.isActive ? 'Đang hoạt động' : 'Đang bị khóa'
+    ]);
+    exportToCSV({
+      filename: 'danh_sach_hoc_vien',
+      headers,
+      rows
+    });
+    showToast('Đã xuất file CSV thành công!');
+  };
+
+  // Xuất file DOC
+  const handleExportDOC = () => {
+    if (filteredStudents.length === 0) {
+      showToast('⚠️ Không có dữ liệu học viên để xuất file!');
+      return;
+    }
+    const headers = ['STT', 'Họ và tên', 'Email', 'Trình độ', 'Khóa học', 'Trạng thái'];
+    const rows = filteredStudents.map((s, idx) => [
+      idx + 1,
+      s.fullName,
+      s.email,
+      `Level ${s.level}`,
+      (s.enrolledCourses || []).join(', ') || 'Chưa đăng ký',
+      s.isActive ? 'Hoạt động' : 'Bị khóa'
+    ]);
+    exportToDOC({
+      filename: 'bao_cao_hoc_vien',
+      title: 'BÁO CÁO THỐNG KÊ DANH SÁCH HỌC VIÊN',
+      subtitle: 'Báo cáo trích xuất từ phân hệ Quản trị viên EnglishHub',
+      statsSummary: [
+        { label: 'Tổng số học viên', value: stats.total },
+        { label: 'Tài khoản hoạt động', value: stats.active },
+        { label: 'Tài khoản bị khóa', value: stats.blocked },
+        { label: 'Đang theo học', value: stats.learning }
+      ],
+      headers,
+      rows
+    });
+    showToast('Đã xuất file Word (.doc) thành công!');
+  };
+
   // Stats
   const stats = {
     total: students.length,
@@ -100,13 +169,33 @@ export default function AdminUsersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-           <button
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Nút Xuất CSV */}
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-xs"
+            title="Xuất danh sách học viên dạng bảng tính Excel / CSV"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Xuất CSV</span>
+          </button>
+
+          {/* Nút Xuất Word .DOC */}
+          <button
+            onClick={handleExportDOC}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-xs"
+            title="Xuất báo cáo học viên kèm chỉ số dạng Microsoft Word (.doc)"
+          >
+            <FileText className="w-4 h-4 text-indigo-600" />
+            <span>Xuất Word (.DOC)</span>
+          </button>
+
+          <button
             onClick={fetchUsers}
-            className="group flex items-center gap-2 px-5 py-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-black text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm"
+            className="group flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-black text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 transition-transform group-hover:rotate-180 ${loading ? 'animate-spin' : ''}`} />
-            LÀM MỚI DỮ LIỆU
+            <span>LÀM MỚI</span>
           </button>
         </div>
       </div>
@@ -224,7 +313,7 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ) : (
-                filteredStudents.map((s) => (
+                paginatedStudents.map((s) => (
                   <tr key={s.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-5 px-8">
                       <div className="flex items-center gap-4">
@@ -310,6 +399,77 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Thanh Phân Trang (Pagination Bar) */}
+        {filteredStudents.length > 0 && (
+          <div className="px-8 py-4 border-t-2 border-slate-50 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
+              <span>Hiển thị</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-indigo-600"
+              >
+                <option value={5}>5 / trang</option>
+                <option value={10}>10 / trang</option>
+                <option value={20}>20 / trang</option>
+                <option value={50}>50 / trang</option>
+              </select>
+              <span>
+                (Từ {Math.min((currentPage - 1) * pageSize + 1, filteredStudents.length)} - {Math.min(currentPage * pageSize, filteredStudents.length)} trên tổng {filteredStudents.length} học viên)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+                title="Trang trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // Hiển thị dạng rút gọn nếu nhiều trang
+                if (
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-xl text-xs font-black transition-all ${
+                        currentPage === page
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                } else if (page === currentPage - 2 || page === currentPage + 2) {
+                  return <span key={page} className="px-1 text-slate-400 text-xs">...</span>;
+                }
+                return null;
+              })}
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+                title="Trang sau"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Course List Modal */}

@@ -23,7 +23,7 @@ export default function ShadowingStudio({ lesson }) {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [recordedSegments, setRecordedSegments] = useState({}); // Track recorded status per segment
   const [showComments, setShowComments] = useState(false);
-  const [isProLocked, setIsProLocked] = useState(lesson?.isPro || false);
+  const [isProLocked, setIsProLocked] = useState(false);
 
   // Ref for iframe video control
   const iframeRef = useRef(null);

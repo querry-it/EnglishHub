@@ -74,21 +74,13 @@ const LessonCardSkeleton = () => (
 );
 
 // Helper components tách biệt để tối ưu render
-const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing, openProModal }) => (
+const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing }) => (
   <div
-    className={`group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col border-2 ${
-      lesson.isPro
-        ? 'border-amber-400 dark:border-amber-500 shadow-md shadow-amber-500/10'
-        : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400'
-    }`}
+    className="group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-400"
   >
     {/* Thumbnail Area */}
     <div
       onClick={() => {
-        if (lesson.isPro) {
-          openProModal();
-          return;
-        }
         onSelect(lesson.id);
       }}
       className="relative aspect-video overflow-hidden bg-slate-950 cursor-pointer"
@@ -104,11 +96,6 @@ const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing, openProMod
       />
 
       <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
-        {lesson.isPro && (
-          <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-1 shadow-sm uppercase tracking-wider">
-            <Crown className="w-3 h-3 fill-current" /> PRO
-          </span>
-        )}
         <span className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-white font-bold text-[10px] flex items-center gap-1">
           <Eye className="w-3 h-3 text-slate-300" /> {lesson.views}
         </span>
@@ -137,10 +124,6 @@ const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing, openProMod
     <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white dark:bg-slate-900">
       <h4
         onClick={() => {
-          if (lesson.isPro) {
-            openProModal();
-            return;
-          }
           onSelect(lesson.id);
         }}
         className="font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer"
@@ -151,7 +134,6 @@ const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing, openProMod
       <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
         <button
           onClick={() => {
-            if (lesson.isPro) { openProModal(); return; }
             onSelect(lesson.id);
           }}
           className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
@@ -161,7 +143,6 @@ const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing, openProMod
 
         <button
           onClick={() => {
-            if (lesson.isPro) { openProModal(); return; }
             onSelectShadowing(lesson.id);
           }}
           className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
@@ -377,11 +358,6 @@ export default function Listening() {
   const handleCreateCustomLesson = () => {
     if (!youtubeUrl.trim()) return;
 
-    if (!user?.isPro && customLessonCount >= 3) {
-      setShowLimitPopup(true);
-      return;
-    }
-
     const newLesson = {
       id: Date.now(),
       title: 'YouTube AI Audio Transcript Lesson',
@@ -406,7 +382,6 @@ export default function Listening() {
 
   return (
     <div className="w-full min-h-screen pb-12">
-        <LimitPopup isOpen={showLimitPopup} onClose={() => setShowLimitPopup(false)} />
         {lessonId ? (
           <ErrorBoundary>
             {mode === 'shadowing' ? (
@@ -417,72 +392,6 @@ export default function Listening() {
           </ErrorBoundary>
         ) : (
           <div className="space-y-8 max-w-7xl mx-auto w-full px-2 sm:px-4 pt-2">
-
-            {/* 1. AI YOUTUBE CONVERTER CARD */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 space-y-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-600/20">
-                  <Video className="w-5 h-5 fill-current" />
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-black text-slate-900 dark:text-white text-base sm:text-lg">
-                    Tạo bài học từ video YouTube
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 text-[10px] font-black flex items-center gap-1 border border-blue-200 dark:border-blue-800">
-                    <Sparkles className="w-3 h-3" /> AI
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-indigo-900 text-amber-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
-                    <Crown className="w-3 h-3 fill-current text-amber-300" /> PRO
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Dán link video tiếng Anh, AI sẽ tự tạo transcript và phân loại cấp độ cho bạn.
-              </p>
-
-              {/* Input field + Main Button */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Dán link YouTube vào đây..."
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 shadow-xs"
-                  />
-                </div>
-                <button
-                  onClick={handleCreateCustomLesson}
-                  className="px-7 py-3.5 rounded-2xl bg-[#1E2540] hover:bg-[#151a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shrink-0 shadow-md active:scale-98"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>TẠO BÀI HỌC</span>
-                </button>
-              </div>
-
-              {/* Sub Action Buttons underneath input */}
-              <div className="flex items-center gap-3 flex-wrap pt-2">
-                <button className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-2 transition-colors shadow-2xs">
-                  <Headphones className="w-4 h-4 text-sky-500" />
-                  <span>Nghe thụ động</span>
-                </button>
-
-                <button className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-2 transition-colors shadow-2xs">
-                  <Tv className="w-4 h-4 text-rose-500" />
-                  <span>Kênh YouTube</span>
-                </button>
-
-                <Link
-                  to="/community"
-                  className="px-5 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all active:scale-98 ml-auto"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>KHÁM PHÁ BÀI HỌC CỘNG ĐỒNG</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
 
             {/* 2. TAGS & TOPICS FILTER BAR */}
             <div className="space-y-3">

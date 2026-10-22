@@ -17,7 +17,6 @@ const STUDENT_SECTIONS = [
     label: null,
     items: [
       { label: 'Trang chủ',          icon: Home,          path: '/dashboard' },
-      { label: 'Chủ đề',             icon: BookOpen,      path: '/topics' },
       { label: 'Luyện nghe',         icon: Headphones,    path: '/listening' },
       { label: 'Từ vựng',            icon: FileText,      path: '/vocabulary' },
       { label: 'Luyện nói',          icon: Mic,           path: '/speaking' },
@@ -31,11 +30,8 @@ const STUDENT_SECTIONS = [
   {
     label: 'CỘNG ĐỒNG',
     items: [
-      { label: 'Cộng đồng',             icon: MessageSquare,  path: '/community' },
       { label: 'Bảng xếp hạng',         icon: Trophy,         path: '/leaderboard' },
       { label: 'Trò chuyện',            icon: MessageCircle,  path: '/chat' },
-      { label: 'Feedback từ người dùng', icon: MessageSquare, path: '/feedbacks' },
-      { label: 'Đổi quà',               icon: Gift,           path: '/shop' },
     ],
   },
 ];
@@ -46,7 +42,7 @@ const INSTRUCTOR_SECTIONS = [
     items: [
       { label: 'Trang chủ',            icon: Home,            path: '/instructor' },
       { label: 'Khóa học của tôi',     icon: BookOpen,        path: '/instructor/courses' },
-      { label: 'Soạn bài học mới',     icon: PlusCircle,      path: '/instructor/create-lesson' },
+      { label: 'Chấm bài kiểm tra',    icon: CheckSquare,     path: '/instructor/grading' },
       { label: 'Danh sách học viên',   icon: Users,           path: '/instructor/students' },
     ],
   },
@@ -203,20 +199,6 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
             </nav>
           </div>
         ))}
-
-        {/* PRO banner — hiển thị nút MỞ KHÓA PRO */}
-        {!isSpecialPortal && !collapsed && (
-          <div className="pt-3">
-            <button
-              type="button"
-              onClick={() => openProModal()}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-400 via-blue-600 to-purple-600 hover:opacity-95 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 border-2 border-indigo-900/30 transition-all active:scale-98"
-            >
-              <Crown className="w-4 h-4 text-amber-300 fill-current shrink-0" />
-              <span>MỞ KHÓA PRO</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ── PINNED BOTTOM FOOTER ─────────────────────────────── */}
@@ -235,26 +217,34 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
                   <div className="w-9 h-9 rounded-full bg-[#5c4033] text-white flex items-center justify-center font-extrabold text-sm border-2 border-white dark:border-slate-800 shadow-sm">
                     {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                   </div>
-                  <span className="absolute -bottom-1 -right-1 px-1 py-0.1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[8px] font-black border border-slate-300 dark:border-slate-700 shadow-2xs">
-                    Lv.{user.level || 1}
-                  </span>
+                  {user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && (
+                    <span className="absolute -bottom-1 -right-1 px-1 py-0.1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[8px] font-black border border-slate-300 dark:border-slate-700 shadow-2xs">
+                      Lv.{user.level || 1}
+                    </span>
+                  )}
                 </div>
                 {!collapsed && (
                   <div className="text-left truncate flex-1">
                     <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
                       {user.fullName || 'Người dùng'}
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-sky-500 transition-all duration-500"
-                          style={{ width: `${((user?.totalExp || 0) % 1000) / 10}%` }}
-                        />
+                    {user.role === 'INSTRUCTOR' || user.role === 'ADMIN' ? (
+                      <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">
+                        {user.role === 'ADMIN' ? 'Quản trị viên' : 'Giảng viên'}
                       </div>
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 shrink-0">
-                        {Math.floor(((user?.totalExp || 0) % 1000) / 10)}%
-                      </span>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-sky-500 transition-all duration-500"
+                            style={{ width: `${((user?.totalExp || 0) % 1000) / 10}%` }}
+                          />
+                        </div>
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 shrink-0">
+                          {Math.floor(((user?.totalExp || 0) % 1000) / 10)}%
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
