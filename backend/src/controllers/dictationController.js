@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { addExperience } from '../services/levelService.js';
 import { extractVideoId } from '../services/youtubeService.js';
+import { logAction } from '../services/auditService.js';
 
 /**
  * Nộp bài tập Dictation
@@ -9,6 +10,7 @@ import { extractVideoId } from '../services/youtubeService.js';
 export const submitDictation = async (req, res) => {
   const { lessonId, score } = req.body;
   const userId = req.user.id;
+  const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
   if (!lessonId || score === undefined) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin nộp bài!' });
@@ -64,6 +66,15 @@ export const submitDictation = async (req, res) => {
 
       // 4. Sử dụng LevelService để cộng Exp và tính Level
       const levelResult = await addExperience(tx, userId, expGained, 'COMPLETED_LEARNING');
+
+      // 5. Ghi Log Audit
+      await logAction({
+        userId,
+        action: 'SUBMIT_LESSON',
+        targetId: lessonId,
+        details: `Nộp bài tập Dictation đạt ${Math.round(score)}%`,
+        ipAddress
+      });
 
       return {
         score: progress.score,

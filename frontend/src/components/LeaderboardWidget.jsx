@@ -1,14 +1,28 @@
-import React from 'react';
-import { Trophy, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Trophy, User, Loader2 } from 'lucide-react';
 import AppCard from './AppCard';
+import api from '../api/axios';
 
 export default function LeaderboardWidget() {
-  const users = [
-    { rank: '#1', name: 'Phat TV', level: 'Lv.41', time: '12g 31p' },
-    { rank: '#2', name: 'Cẩm Tiên Đỗ Thị', level: 'Lv.34', time: '11g 56p' },
-    { rank: '#3', name: '@lightstar', level: 'Lv.4', time: '11g 50p' },
-    { rank: '#4', name: '@hungtvb', level: 'Lv.3', time: '11g 46p' },
-  ];
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTopUsers = async () => {
+      try {
+        const response = await api.get('/auth/leaderboard');
+        if (response.data.success) {
+          // Chỉ lấy top 5 cho widget
+          setUsers(response.data.users.slice(0, 5));
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải leaderboard widget:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTopUsers();
+  }, []);
 
   return (
     <AppCard className="space-y-4">
@@ -19,27 +33,57 @@ export default function LeaderboardWidget() {
             <span>Bảng xếp hạng</span>
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Xem bạn đang đứng thứ mấy so với các bạn khác
+            Những học viên xuất sắc nhất hệ thống
           </p>
         </div>
       </div>
 
       <div className="space-y-2">
-        {users.map((user, idx) => (
-          <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border-2 border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <span className="font-extrabold text-xs text-amber-500 w-6">{user.rank}</span>
-              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center">
-                <User className="w-4 h-4" />
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border-2 border-slate-200 dark:border-slate-700 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                  <div className="space-y-1">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16"></div>
+                    <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded w-8"></div>
+                  </div>
+                </div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-12"></div>
               </div>
-              <div>
-                <p className="font-bold text-xs text-slate-900 dark:text-white">{user.name}</p>
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-extrabold">{user.level}</span>
-              </div>
-            </div>
-            <span className="text-xs font-mono font-bold text-slate-500">{user.time}</span>
+            ))}
           </div>
-        ))}
+        ) : users.length > 0 ? (
+          users.map((u, idx) => (
+            <div key={u.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border-2 border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3">
+                <span className={`font-extrabold text-xs w-6 ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                  #{idx + 1}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center overflow-hidden">
+                  {u.avatarUrl ? (
+                    <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-bold text-xs text-slate-900 dark:text-white truncate max-w-[120px]">
+                    {u.fullName}
+                  </p>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-extrabold">Lv.{u.level}</span>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                {u.totalExp.toLocaleString()} XP
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="text-center py-4 text-xs text-slate-500 font-bold">Chưa có dữ liệu</p>
+        )}
       </div>
     </AppCard>
   );

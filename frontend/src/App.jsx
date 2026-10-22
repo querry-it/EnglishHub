@@ -38,6 +38,7 @@ import AdminCoursesPage from './pages/admin/AdminCoursesPage';
 import AdminLessonsPage from './pages/admin/AdminLessonsPage';
 import AdminBlogPage from './pages/admin/AdminBlogPage';
 import AdminNotificationsPage from './pages/admin/AdminNotificationsPage';
+import AdminVocabPage from './pages/admin/AdminVocabPage';
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
 import InstructorCourses from './pages/instructor/InstructorCourses';
 import InstructorGrading from './pages/instructor/InstructorGrading';
@@ -156,6 +157,7 @@ function AppContent() {
         <Route path="/admin/instructors" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminInstructorsPage /></ProtectedRoute>} />
         <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminCoursesPage /></ProtectedRoute>} />
         <Route path="/admin/lessons" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminLessonsPage /></ProtectedRoute>} />
+        <Route path="/admin/vocabulary" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminVocabPage /></ProtectedRoute>} />
         <Route path="/admin/blog" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminBlogPage /></ProtectedRoute>} />
         <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminNotificationsPage /></ProtectedRoute>} />
         <Route path="/admin/logs" element={<ProtectedRoute allowedRoles={['ADMIN']}><AuditLogsPage /></ProtectedRoute>} />

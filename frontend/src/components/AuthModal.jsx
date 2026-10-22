@@ -75,7 +75,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', isIn
           const loginResult = await login(email, password, true);
           setLoading(false);
           if (loginResult.success) {
-            onClose();
+            onClose?.();
             redirectUserByRole(loginResult.user);
           } else {
             setMode('login');
@@ -89,7 +89,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', isIn
       const result = await login(email, password, rememberMe);
       if (result.success) {
         setLoading(false);
-        onClose();
+        onClose?.();
         redirectUserByRole(result.user);
       } else {
         setError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
@@ -102,7 +102,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', isIn
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      onClose();
+      onClose?.();
     }, 400);
   };
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, logout, refreshToken } from '../controllers/authController.js';
+import { register, login, logout, refreshToken, getLeaderboard, checkIn, updateProfile } from '../controllers/authController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -15,6 +15,15 @@ router.post('/refresh', refreshToken);
 
 // @route   POST api/auth/logout
 router.post('/logout', verifyToken, logout);
+
+// @route   GET api/auth/leaderboard
+router.get('/leaderboard', getLeaderboard);
+
+// @route   POST api/auth/checkin
+router.post('/checkin', verifyToken, checkIn);
+
+// @route   PATCH api/auth/profile/:id
+router.patch('/profile/:id', verifyToken, updateProfile);
 
 // @route   GET api/auth/me
 router.get('/me', verifyToken, (req, res) => {

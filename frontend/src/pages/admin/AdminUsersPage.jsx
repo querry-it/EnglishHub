@@ -1,211 +1,163 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Users, Search, Crown, UserX, UserCheck, 
-  Check, GraduationCap, RefreshCw, Filter
+  Users, Search, UserX, UserCheck,
+  Check, RefreshCw, BookOpen,
+  Mail, X
 } from 'lucide-react';
+import api from '../../api/axios'; // Sử dụng instance api đã cấu hình sẵn
 
 export default function AdminUsersPage() {
-  const [students, setStudents] = useState([
-    {
-      id: 'stu-1',
-      fullName: 'Trần Thu Hà',
-      email: 'thuhapromember@gmail.com',
-      role: 'STUDENT',
-      isPro: true,
-      proExpireDate: '2027-10-01',
-      status: 'ACTIVE',
-      joinedDate: '2026-01-15',
-      level: 'Trình độ A2 (Sơ cấp)',
-      completedLessons: 18
-    },
-    {
-      id: 'stu-2',
-      fullName: 'Lê Hoàng Nam',
-      email: 'nampro123@gmail.com',
-      role: 'STUDENT',
-      isPro: false,
-      status: 'ACTIVE',
-      joinedDate: '2026-03-10',
-      level: 'Trình độ B1 (Trung cấp)',
-      completedLessons: 12
-    },
-    {
-      id: 'stu-3',
-      fullName: 'Phạm Thị Thảo',
-      email: 'thaopham@gmail.com',
-      role: 'STUDENT',
-      isPro: true,
-      proExpireDate: '2027-05-20',
-      status: 'ACTIVE',
-      joinedDate: '2026-02-01',
-      level: 'Trình độ B2 (IELTS 6.0+)',
-      completedLessons: 28
-    },
-    {
-      id: 'stu-4',
-      fullName: 'Vũ Quốc Khánh',
-      email: 'khanhvu99@gmail.com',
-      role: 'STUDENT',
-      isPro: false,
-      status: 'ACTIVE',
-      joinedDate: '2026-03-15',
-      level: 'Trình độ A1 (Người mới)',
-      completedLessons: 5
-    },
-    {
-      id: 'stu-5',
-      fullName: 'Đỗ Mạnh Cường',
-      email: 'cuongspam99@gmail.com',
-      role: 'STUDENT',
-      isPro: false,
-      status: 'BLOCKED',
-      joinedDate: '2026-04-02',
-      level: 'Trình độ A2',
-      blockReason: 'Spam bình luận tại cộng đồng'
-    }
-  ]);
-
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('ALL'); // 'ALL' | 'PRO' | 'FREE' | 'BLOCKED'
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'BLOCKED'
   const [toastMessage, setToastMessage] = useState(null);
+  const [selectedUserCourses, setSelectedUserCourses] = useState(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Filter Students
-  const filteredStudents = students.filter((s) => {
-    const matchesSearch = 
-      s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesFilter = 
-      filterType === 'ALL' ||
-      (filterType === 'PRO' && s.isPro && s.status === 'ACTIVE') ||
-      (filterType === 'FREE' && !s.isPro && s.status === 'ACTIVE') ||
-      (filterType === 'BLOCKED' && s.status === 'BLOCKED');
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Sử dụng instance 'api' thay vì axios thuần để tự động đính kèm Token và xử lý Refresh
+      const response = await api.get('/admin/users', {
+        params: {
+          role: 'STUDENT',
+          status: statusFilter === 'ALL' ? undefined : statusFilter
+        }
+      });
+      if (response.data.success) {
+        setStudents(response.data.users);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showToast('Không thể tải danh sách học viên');
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter]);
 
-    return matchesSearch && matchesFilter;
-  });
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
-  // Promote Student to Instructor
-  const handlePromoteToInstructor = (student) => {
-    if (window.confirm(`Bạn có muốn nâng cấp Học viên "${student.fullName}" lên vai trò Giảng viên không? (Tài khoản này sẽ chuyển sang trang Quản Lý Giảng Viên)`)) {
-      setStudents((prev) => prev.filter((s) => s.id !== student.id));
-      showToast(`Đã nâng cấp "${student.fullName}" thành Giảng viên! Đã chuyển sang Quản lý Giảng viên.`);
+  const handleToggleBlock = async (student) => {
+    try {
+      const nextStatus = !student.isActive;
+      await api.patch(`/admin/users/${student.id}/status`,
+        { isActive: nextStatus }
+      );
+
+      setStudents((prev) =>
+        prev.map((s) => (s.id === student.id ? { ...s, isActive: nextStatus } : s))
+      );
+      showToast(`Đã ${nextStatus ? 'mở khóa' : 'khóa'} tài khoản ${student.fullName}`);
+    } catch (error) {
+      console.error('Error toggling block status:', error);
+      showToast('Lỗi khi cập nhật trạng thái');
     }
   };
 
-  // Toggle PRO status
-  const handleTogglePro = (studentId) => {
-    setStudents((prev) =>
-      prev.map((s) => {
-        if (s.id === studentId) {
-          const nextPro = !s.isPro;
-          showToast(`Đã ${nextPro ? 'kích hoạt PRO' : 'hủy PRO'} cho học viên ${s.fullName}!`);
-          return { ...s, isPro: nextPro, proExpireDate: nextPro ? '2027-12-31' : null };
-        }
-        return s;
-      })
-    );
-  };
+  const filteredStudents = students.filter((s) =>
+    s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // Toggle Block/Unban
-  const handleToggleBlock = (studentId) => {
-    setStudents((prev) =>
-      prev.map((s) => {
-        if (s.id === studentId) {
-          const isBlocked = s.status === 'BLOCKED';
-          const nextStatus = isBlocked ? 'ACTIVE' : 'BLOCKED';
-          showToast(`Đã ${isBlocked ? 'mở khóa' : 'khóa tài khoản học viên'} ${s.fullName}!`);
-          return { ...s, status: nextStatus };
-        }
-        return s;
-      })
-    );
+  // Stats
+  const stats = {
+    total: students.length,
+    active: students.filter(s => s.isActive).length,
+    blocked: students.filter(s => !s.isActive).length,
+    learning: students.filter(s => s.enrolledCourses?.length > 0).length
   };
-
-  // Metrics
-  const totalStudents = students.length;
-  const proStudents = students.filter((s) => s.isPro && s.status === 'ACTIVE').length;
-  const freeStudents = students.filter((s) => !s.isPro && s.status === 'ACTIVE').length;
-  const blockedStudents = students.filter((s) => s.status === 'BLOCKED').length;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto w-full pb-12">
-      {/* Toast Notification */}
+    <div className="space-y-8 max-w-7xl mx-auto w-full pb-20 animate-in fade-in duration-500">
+      {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 font-extrabold text-xs flex items-center gap-2 animate-bounce">
-          <Check className="w-4 h-4 text-emerald-400" />
+        <div className="fixed bottom-8 right-8 z-50 bg-slate-900 text-white px-6 py-4 rounded-3xl shadow-2xl border border-slate-700 font-bold text-sm flex items-center gap-3 animate-in slide-in-from-bottom-4">
+          <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
+            <Check className="w-4 h-4 text-emerald-400" />
+          </div>
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-          <Users className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-          <span>Quản Lý Học Viên</span>
-        </h1>
-        <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 mt-1">
-          Danh sách toàn bộ học viên đang theo học trên hệ thống EnglishHub.
-        </p>
-      </div>
-
-      {/* Overview Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-          <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider">Tổng Học Viên</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">{totalStudents} Học viên</span>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none">
+              <Users className="w-7 h-7 text-white" />
+            </div>
+            Quản Lý Học Viên
+          </h1>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">
+            Theo dõi tiến độ, quản lý quyền truy cập và khóa học của học viên.
+          </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-indigo-200 dark:border-indigo-900/40 shadow-xs space-y-1">
-          <span className="text-indigo-600 dark:text-indigo-400 text-xs font-bold block uppercase tracking-wider flex items-center gap-1">
-            <Crown className="w-4 h-4 text-amber-500" /> Học Viên PRO
-          </span>
-          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono">{proStudents} Học viên</span>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-          <span className="text-slate-500 text-xs font-bold block uppercase tracking-wider">Học Viên Miễn Phí</span>
-          <span className="text-2xl font-black text-slate-700 dark:text-slate-200 font-mono">{freeStudents} Học viên</span>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-rose-200 dark:border-rose-900/40 shadow-xs space-y-1">
-          <span className="text-rose-500 text-xs font-bold block uppercase tracking-wider flex items-center gap-1">
-            <UserX className="w-4 h-4" /> Đang bị khóa
-          </span>
-          <span className="text-2xl font-black text-rose-500 font-mono">{blockedStudents} Học viên</span>
+        <div className="flex items-center gap-3">
+           <button
+            onClick={fetchUsers}
+            className="group flex items-center gap-2 px-5 py-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-black text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm"
+          >
+            <RefreshCw className={`w-4 h-4 transition-transform group-hover:rotate-180 ${loading ? 'animate-spin' : ''}`} />
+            LÀM MỚI DỮ LIỆU
+          </button>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Tổng học viên', value: stats.total, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+          { label: 'Đang hoạt động', value: stats.active, icon: UserCheck, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+          { label: 'Đã đăng ký học', value: stats.learning, icon: BookOpen, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+          { label: 'Đang bị khóa', value: stats.blocked, icon: UserX, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-950/30' },
+        ].map((item, idx) => (
+          <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-4">
+              <div className={`w-14 h-14 ${item.bg} rounded-3xl flex items-center justify-center`}>
+                <item.icon className={`w-7 h-7 ${item.color}`} />
+              </div>
+              <div>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
+                <p className="text-2xl font-black text-slate-900 dark:text-white font-mono">{item.value}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full lg:w-96">
+          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Tìm theo tên hoặc email học viên..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-600"
+            className="w-full pl-12 pr-4 py-3.5 rounded-[1.5rem] bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition-all text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
+        <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl w-full lg:w-auto">
           {[
             { key: 'ALL', label: 'Tất cả' },
-            { key: 'PRO', label: 'Học viên PRO' },
-            { key: 'FREE', label: 'Miễn phí' },
-            { key: 'BLOCKED', label: 'Đang bị khóa' }
+            { key: 'ACTIVE', label: 'Hoạt động' },
+            { key: 'BLOCKED', label: 'Bị khóa' }
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilterType(tab.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-colors ${
-                filterType === tab.key
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+              onClick={() => setStatusFilter(tab.key)}
+              className={`flex-1 lg:flex-none px-6 py-2 rounded-xl text-xs font-black transition-all ${
+                statusFilter === tab.key
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -215,123 +167,190 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Students Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+      {/* Main Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-[11px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-4 px-5">Học viên</th>
-                <th className="py-4 px-4">Trình độ & Tiến độ</th>
-                <th className="py-4 px-4">Gói tài khoản</th>
-                <th className="py-4 px-4">Trạng thái</th>
-                <th className="py-4 px-4">Ngày tham gia</th>
-                <th className="py-4 px-5 text-right">Hành động</th>
+              <tr className="border-b-2 border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-[11px] font-black uppercase tracking-widest text-slate-400">
+                <th className="py-6 px-8">Thông tin học viên</th>
+                <th className="py-6 px-6">Cấp độ</th>
+                <th className="py-6 px-6">Khóa học tham gia</th>
+                <th className="py-6 px-6">Trạng thái</th>
+                <th className="py-6 px-8 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
-              {filteredStudents.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                  
-                  {/* User info */}
-                  <td className="py-4 px-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 font-black text-sm flex items-center justify-center text-slate-700 dark:text-slate-200 shrink-0 border border-slate-200 dark:border-slate-700">
-                        {s.fullName.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="font-extrabold text-slate-900 dark:text-white text-sm">
-                          {s.fullName}
-                        </div>
-                        <div className="text-slate-400 font-mono text-[11px]">
-                          {s.email}
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              {loading ? (
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="py-5 px-8">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                          <div className="h-3 w-44 bg-slate-100 dark:bg-slate-800/50 rounded-lg" />
                         </div>
                       </div>
-                    </div>
-                  </td>
-
-                  {/* Level & Completed */}
-                  <td className="py-4 px-4">
-                    <div className="font-extrabold text-slate-900 dark:text-white">{s.level}</div>
-                    <div className="text-indigo-600 dark:text-indigo-400 font-mono text-[11px]">Đã học: {s.completedLessons} bài</div>
-                  </td>
-
-                  {/* PRO Status */}
-                  <td className="py-4 px-4">
-                    {s.isPro ? (
-                      <span className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 w-fit shadow-xs">
-                        <Crown className="w-3 h-3 fill-current" /> PRO Active
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 font-semibold text-[11px]">Tài khoản Miễn phí</span>
-                    )}
-                  </td>
-
-                  {/* Account Status */}
-                  <td className="py-4 px-4">
-                    {s.status === 'ACTIVE' ? (
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-extrabold text-[11px]">
-                        Hoạt động
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-500 font-extrabold text-[11px]">
-                        Đang bị khóa
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Joined Date */}
-                  <td className="py-4 px-4 font-mono text-slate-500 dark:text-slate-400 text-[11px]">
-                    {s.joinedDate}
-                  </td>
-
-                  {/* Action Buttons */}
-                  <td className="py-4 px-5 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      
-                      {/* Promote to Instructor Button */}
-                      <button
-                        onClick={() => handlePromoteToInstructor(s)}
-                        className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/80 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-extrabold text-xs transition-colors flex items-center gap-1 border border-amber-300 dark:border-amber-800"
-                        title="Nâng cấp học viên lên vai trò Giảng viên"
-                      >
-                        <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Nâng lên Giảng viên</span>
-                      </button>
-
-                      {/* Toggle PRO Button */}
-                      <button
-                        onClick={() => handleTogglePro(s.id)}
-                        className={`p-1.5 rounded-xl border transition-colors ${
-                          s.isPro
-                            ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800'
-                            : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-amber-500 dark:bg-slate-800 dark:border-slate-700'
-                        }`}
-                        title={s.isPro ? 'Hủy quyền PRO' : 'Cấp gói PRO thủ công'}
-                      >
-                        <Crown className="w-4 h-4 fill-current" />
-                      </button>
-
-                      {/* Block/Unban Button */}
-                      <button
-                        onClick={() => handleToggleBlock(s.id)}
-                        className={`p-1.5 rounded-xl border transition-colors ${
-                          s.status === 'BLOCKED'
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40'
-                            : 'bg-rose-50 text-rose-500 border-rose-200 dark:bg-rose-950/40'
-                        }`}
-                        title={s.status === 'BLOCKED' ? 'Mở khóa tài khoản' : 'Khóa tài khoản học viên'}
-                      >
-                        {s.status === 'BLOCKED' ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
-                      </button>
+                    </td>
+                    <td className="py-5 px-6">
+                      <div className="h-4 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                    </td>
+                    <td className="py-5 px-6">
+                      <div className="flex gap-2">
+                        <div className="h-6 w-16 bg-slate-100 dark:bg-slate-800 rounded-full" />
+                        <div className="h-6 w-16 bg-slate-100 dark:bg-slate-800 rounded-full" />
+                      </div>
+                    </td>
+                    <td className="py-5 px-6">
+                      <div className="h-7 w-20 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                    </td>
+                    <td className="py-5 px-8">
+                      <div className="flex justify-end">
+                        <div className="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                        <Search className="w-8 h-8 text-slate-300" />
+                      </div>
+                      <p className="text-slate-400 font-bold text-sm">Không tìm thấy học viên nào phù hợp yêu cầu</p>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredStudents.map((s) => (
+                  <tr key={s.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="py-5 px-8">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          {s.avatarUrl ? (
+                            <img src={s.avatarUrl} alt="" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 dark:ring-slate-800" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-black text-lg flex items-center justify-center shadow-md">
+                              {s.fullName.charAt(0)}
+                            </div>
+                          )}
+                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 ${s.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 dark:text-white text-[15px]">{s.fullName}</p>
+                          <div className="flex items-center gap-2 text-slate-400 font-bold text-[11px] mt-0.5">
+                            <Mail className="w-3 h-3" />
+                            {s.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="py-5 px-6">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl text-[11px] font-black uppercase">
+                        Cấp độ {s.level}
+                      </div>
+                    </td>
+
+                    <td className="py-5 px-6">
+                      <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+                        {s.enrolledCourses?.length > 0 ? (
+                          <>
+                            {s.enrolledCourses.slice(0, 2).map((course, i) => (
+                              <span key={i} className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold truncate max-w-[120px]">
+                                {course}
+                              </span>
+                            ))}
+                            {s.enrolledCourses.length > 2 && (
+                              <button
+                                onClick={() => setSelectedUserCourses({ name: s.fullName, courses: s.enrolledCourses })}
+                                className="px-2.5 py-1 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg text-[10px] font-black hover:scale-105 transition-transform"
+                              >
+                                +{s.enrolledCourses.length - 2}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-slate-300 dark:text-slate-600 text-[10px] font-bold italic">Chưa đăng ký</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="py-5 px-6">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${
+                        s.isActive
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-100 dark:border-emerald-900'
+                        : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-100 dark:border-rose-900'
+                      }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${s.isActive ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
+                        {s.isActive ? 'Hoạt động' : 'Đang bị khóa'}
+                      </span>
+                    </td>
+
+                    <td className="py-5 px-8 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleToggleBlock(s)}
+                          className={`p-2.5 rounded-xl border-2 transition-all ${
+                            !s.isActive
+                              ? 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white'
+                              : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'
+                          }`}
+                          title={!s.isActive ? 'Mở khóa tài khoản' : 'Khóa tài khoản học viên'}
+                        >
+                          {!s.isActive ? <UserCheck className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Course List Modal */}
+      {selectedUserCourses && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] border-2 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden scale-in-center">
+            <div className="p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">Khóa học đang theo</h3>
+                  <p className="text-sm font-bold text-slate-500">{selectedUserCourses.name}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedUserCourses(null)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors"
+                >
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {selectedUserCourses.courses.map((course, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                    <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">{course}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setSelectedUserCourses(null)}
+                className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                ĐÓNG CỬA SỔ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
