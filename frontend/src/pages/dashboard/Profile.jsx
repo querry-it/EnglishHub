@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AppMascot from '../../components/AppMascot';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
+import { toast } from 'react-hot-toast';
 import {
   Camera,
+// ... rest of imports
   Image as ImageIcon,
   Lock,
   Save,
@@ -55,25 +58,81 @@ export default function Profile() {
   const [activeLessonTab, setActiveLessonTab] = useState('completed');
 
   // Toggle state for whether edit form is open or collapsed
-  const [isEditing, setIsEditing] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Form states
-  const [username, setUsername] = useState(user?.username || 'huy nguyen');
-  const [bio, setBio] = useState('');
+  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [bio, setBio] = useState(user?.bio || '');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || null);
   const [coverPhoto, setCoverPhoto] = useState(null);
-  const [avatarPhoto, setAvatarPhoto] = useState(null);
   const [saveToast, setSaveToast] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    if (updateProfile) {
-      updateProfile({ username, bio, isPrivate });
+  // Dữ liệu bài học đã học
+  const [lessons, setLessons] = useState([]);
+  const [loadingLessons, setLoadingLessons] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
+
+  // Update local form state when user changes
+  useEffect(() => {
+    if (user) {
+      setFullName(user.fullName || '');
+      setAvatarUrl(user.avatarUrl || null);
+      setBio(user.bio || '');
     }
-    setSaveToast(true);
-    setIsEditing(false);
-    setTimeout(() => setSaveToast(false), 3000);
+  }, [user]);
+
+  // Lấy danh sách bài học dựa trên tab (completed/learning) và loại bài học (dictation/shadowing)
+  useEffect(() => {
+    const fetchProgress = async () => {
+      setLoadingLessons(true);
+      try {
+        const response = await api.get('/lessons/my-progress', {
+          params: { status: activeLessonTab }
+        });
+
+        if (response.data.success) {
+          // Lọc theo loại bài học dựa trên activeRightTab
+          const filtered = response.data.progress
+            .filter(p => {
+              if (activeRightTab === 'dictation') return p.lessonType === 'PRACTICE';
+              if (activeRightTab === 'shadowing') return p.lessonType === 'SPEAKING';
+              return true;
+            });
+          setLessons(filtered);
+          setVisibleCount(10); // Reset về 10 khi đổi Tab
+        }
+      } catch (error) {
+        console.error('Error fetching progress:', error);
+      } finally {
+        setLoadingLessons(false);
+      }
+    };
+
+    if (user) {
+      fetchProgress();
+    }
+  }, [user, activeLessonTab, activeRightTab]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.patch(`/auth/profile/${user.id}`, {
+        fullName,
+        bio,
+        avatarUrl
+      });
+
+      if (response.data.success) {
+        updateProfile(response.data.user);
+        toast.success('Đã cập nhật hồ sơ thành công!');
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error('Update profile error:', error);
+      toast.error(error.response?.data?.message || 'Không thể cập nhật hồ sơ');
+    }
   };
 
   const handleCopyLink = () => {
@@ -155,10 +214,10 @@ export default function Profile() {
                     <div className="flex items-center justify-between">
                       <div className="relative">
                         <div className="w-20 h-20 rounded-full bg-stone-700 text-white flex items-center justify-center font-black text-3xl border-4 border-slate-100 dark:border-slate-800 shadow-inner overflow-hidden">
-                          {avatarPhoto ? (
-                            <img src={avatarPhoto} alt="Avatar" className="w-full h-full object-cover" />
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                           ) : (
-                            username.charAt(0).toLowerCase() || 'h'
+                            fullName.charAt(0).toUpperCase() || 'U'
                           )}
                         </div>
                         <label className="absolute bottom-0 right-0 p-1.5 rounded-full bg-slate-900 text-white border-2 border-white dark:border-slate-800 cursor-pointer hover:bg-slate-800 transition-transform hover:scale-110 shadow-md">
@@ -167,9 +226,16 @@ export default function Profile() {
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               if (e.target.files?.[0]) {
-                                setAvatarPhoto(URL.createObjectURL(e.target.files[0]));
+                                // In a real app, upload to S3/Cloudinary and get URL
+                                // For now, we use a placeholder or local URL simulation
+                                const file = e.target.files[0];
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setAvatarUrl(reader.result);
+                                };
+                                reader.readAsDataURL(file);
                               }
                             }}
                           />
@@ -216,16 +282,16 @@ export default function Profile() {
                     {/* Full Name Input */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-bold text-slate-400">
-                        <span>Tên hiển thị</span>
-                        <span>{username.length}/20</span>
+                        <span>Họ và tên</span>
+                        <span>{fullName.length}/40</span>
                       </div>
                       <input
                         type="text"
-                        maxLength={20}
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        maxLength={40}
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-extrabold text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition-colors"
-                        placeholder="Nhập tên của bạn"
+                        placeholder="Nhập họ và tên của bạn"
                       />
                     </div>
 
@@ -282,8 +348,9 @@ export default function Profile() {
                       <button
                         type="button"
                         onClick={() => {
-                          setUsername(user?.username || 'huy nguyen');
-                          setBio('');
+                          setFullName(user?.fullName || '');
+                          setBio(user?.bio || '');
+                          setAvatarUrl(user?.avatarUrl || null);
                           setIsEditing(false);
                         }}
                         className="p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
@@ -319,15 +386,15 @@ export default function Profile() {
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="relative">
                         <div className="w-20 h-20 rounded-full bg-stone-700 text-white flex items-center justify-center font-black text-3xl border-4 border-white dark:border-slate-800 shadow-md overflow-hidden">
-                          {avatarPhoto ? (
-                            <img src={avatarPhoto} alt="Avatar" className="w-full h-full object-cover" />
+                          {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                           ) : (
-                            username.charAt(0).toLowerCase() || 'h'
+                            user?.fullName?.charAt(0).toUpperCase() || 'U'
                           )}
                         </div>
-                        {/* Lv.1 badge overlapping avatar */}
+                        {/* Lv badge overlapping avatar */}
                         <div className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-black text-[10px] border-2 border-slate-200 dark:border-slate-700 shadow-sm">
-                          Lv.1
+                          Lv.{user?.level || 1}
                         </div>
                       </div>
 
@@ -341,12 +408,12 @@ export default function Profile() {
                     <div className="relative z-10 flex items-center gap-2 flex-wrap pt-1">
                       {/* Name pill */}
                       <div className="px-3.5 py-1.5 rounded-xl bg-red-200/70 dark:bg-red-900/40 backdrop-blur-md border border-red-300/50 dark:border-red-800/50 font-black text-sm text-slate-900 dark:text-white shadow-sm">
-                        {username}
+                        {user?.fullName || 'Người dùng'}
                       </div>
 
                       {/* Level pill */}
                       <div className="px-3 py-1 rounded-xl bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-200 font-extrabold text-xs border border-sky-200 dark:border-sky-800 shadow-sm flex items-center gap-1">
-                        Lv.1
+                        Lv.{user?.level || 1}
                       </div>
 
                       {/* Rank icon square badge */}
@@ -408,8 +475,8 @@ export default function Profile() {
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1">
                     Nhận ngay 100 Kim Cương <Diamond className="w-3.5 h-3.5 text-sky-500 fill-sky-500 inline" /> cho mỗi bạn bè đăng ký bằng mã giới thiệu của bạn!
                   </p>
-                  <div className="inline-block py-2 px-6 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 font-mono font-black text-base text-slate-900 dark:text-white">
-                    HUY-NGUYEN-888
+                  <div className="inline-block py-2 px-6 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 font-mono font-black text-base text-slate-900 dark:text-white uppercase">
+                    {user?.fullName?.split(' ').join('-').toUpperCase()}-{user?.id?.slice(0, 4)}
                   </div>
                 </div>
               )}
@@ -450,14 +517,14 @@ export default function Profile() {
               <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 font-extrabold text-xs text-slate-700 dark:text-slate-300">
                 <div className="flex items-center gap-1.5">
                   <Diamond className="w-4 h-4 text-sky-500 fill-sky-500" />
-                  <span>52</span>
+                  <span>{user?.gems || 0}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-                  <span>1</span>
+                  <span>0</span>
                 </div>
                 <div className="text-slate-500">
-                  Chuỗi dài nhất: <span className="font-black text-slate-800 dark:text-slate-200">1</span>
+                  Chuỗi dài nhất: <span className="font-black text-slate-800 dark:text-slate-200">0</span>
                 </div>
               </div>
 
@@ -692,21 +759,92 @@ export default function Profile() {
                 </button>
               </div>
 
-              {/* Empty state canvas */}
-              <div className="py-16 text-center space-y-3">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-                  <BookOpen className="w-8 h-8 stroke-[1.5]" />
+              {/* Lesson Progress Content */}
+              {loadingLessons ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 animate-pulse">
+                      <div className="w-20 h-14 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
+                        <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-xs font-bold text-slate-400">
-                  {activeLessonTab === 'completed' ? 'Không tìm thấy bài học nào' : 'Chưa có bài học đang dở dở'}
-                </p>
-                <Link
-                  to="/listening"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs transition-colors shadow-sm"
-                >
-                  Bắt đầu bài học mới
-                </Link>
-              </div>
+              ) : lessons.length > 0 ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {lessons.slice(0, visibleCount).map((lesson) => (
+                      <Link
+                        key={lesson.id}
+                        to={`/listening/${lesson.id}`}
+                        className="group flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-sky-500/50 hover:bg-sky-50/50 dark:hover:bg-sky-900/20 transition-all"
+                      >
+                        <div className="relative w-20 h-14 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
+                          <img
+                            src={`https://img.youtube.com/vi/${lesson.videoUrl}/mqdefault.jpg`}
+                            alt={lesson.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-black text-sm text-slate-900 dark:text-white truncate mb-1">
+                            {lesson.title}
+                          </h4>
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> {lesson.duration || '00:00'}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded-md text-[9px] uppercase ${
+                              lesson.level === 'A1' ? 'bg-emerald-100 text-emerald-600' :
+                              lesson.level === 'A2' ? 'bg-sky-100 text-sky-600' :
+                              'bg-amber-100 text-amber-600'
+                            }`}>
+                              {lesson.level}
+                            </span>
+                            {lesson.score !== undefined && (
+                              <span className="text-sky-500 font-black">
+                                {lesson.score}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* Nút Xem thêm */}
+                  {lessons.length > visibleCount && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        onClick={() => setVisibleCount(prev => prev + 10)}
+                        className="px-6 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                      >
+                        Xem thêm ({lessons.length - visibleCount} bài khác)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Empty state canvas */
+                <div className="py-16 text-center space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                    <BookOpen className="w-8 h-8 stroke-[1.5]" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-400">
+                    {activeLessonTab === 'completed' ? 'Không tìm thấy bài học nào' : 'Chưa có bài học đang dở dở'}
+                  </p>
+                  <Link
+                    to="/listening"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs transition-colors shadow-sm"
+                  >
+                    Bắt đầu bài học mới
+                  </Link>
+                </div>
+              )}
             </div>
 
           </div>

@@ -10,19 +10,52 @@ import ActivityHeatmap from '../../components/ActivityHeatmap';
 import MilestoneRewards from '../../components/MilestoneRewards';
 import LeaderboardWidget from '../../components/LeaderboardWidget';
 import StudyModeModal from '../../components/StudyModeModal';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-hot-toast';
+import api from '../../api/axios';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user, updateProfile } = useAuth();
+
+  // Check if user already checked in today
   const [checkedIn, setCheckedIn] = useState(false);
-  const [gems, setGems] = useState(50);
+
+  useEffect(() => {
+    if (user?.lastCheckIn) {
+      const lastCheckInDate = new Date(user.lastCheckIn);
+      const today = new Date();
+      const isToday = lastCheckInDate.getDate() === today.getDate() &&
+                      lastCheckInDate.getMonth() === today.getMonth() &&
+                      lastCheckInDate.getFullYear() === today.getFullYear();
+      setCheckedIn(isToday);
+    }
+  }, [user]);
+
+  const [gems, setGems] = useState(user?.gems || 0);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Study Mode Modal state
+  // ... rest of state
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [isStudyModeOpen, setIsStudyModeOpen] = useState(false);
 
   const scrollRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Sync gems when user data changes
+  useEffect(() => {
+    if (user?.gems !== undefined) {
+      setGems(user.gems);
+    }
+  }, [user?.gems]);
+
+  // Giả định logic tính XP level: 1000 XP mỗi level
+  const xpPerLevel = 1000;
+  const currentLevel = user?.level || 1;
+  const totalExp = user?.totalExp || 0;
+  const currentLevelExp = totalExp % xpPerLevel;
+  const progressPercent = Math.min((currentLevelExp / xpPerLevel) * 100, 100);
+  const xpToNextLevel = xpPerLevel - currentLevelExp;
 
   // Auto scroll effect - scrolls every 2.8 seconds, pauses on hover
   useEffect(() => {
@@ -47,10 +80,31 @@ export default function Dashboard() {
     }
   };
 
-  const handleCheckIn = () => {
-    if (!checkedIn) {
-      setCheckedIn(true);
-      setGems(prev => prev + 50);
+  const handleCheckIn = async () => {
+    if (checkedIn) return;
+
+    try {
+      const response = await api.post('/auth/checkin');
+      if (response.data.success) {
+        const { gems: newGems, totalExp: newExp, level: newLevel, levelUp } = response.data.data;
+
+        // Update local state and context
+        setCheckedIn(true);
+        updateProfile({
+          gems: newGems,
+          totalExp: newExp,
+          level: newLevel,
+          lastCheckIn: new Date().toISOString()
+        });
+
+        toast.success(response.data.message);
+        if (levelUp) {
+          toast.success('CHÚC MỪNG! Bạn đã lên cấp độ mới! 🎊', { duration: 5000 });
+        }
+      }
+    } catch (error) {
+      console.error('Check-in error:', error);
+      toast.error(error.response?.data?.message || 'Không thể điểm danh. Vui lòng thử lại sau.');
     }
   };
 
@@ -143,7 +197,7 @@ export default function Dashboard() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Chào mừng trở lại
+              Chào mừng trở lại, {user?.fullName || 'Học viên'}!
             </h1>
             <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">
               Giữ vững chuỗi học và nhận phần thưởng
@@ -172,17 +226,20 @@ export default function Dashboard() {
               <div className="flex items-center justify-between text-xs font-bold mb-2">
                 <div className="flex items-center gap-2">
                   <span className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black">
-                    1
+                    {currentLevel}
                   </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-extrabold">✨ Lên level 2</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-extrabold">✨ Lên level {currentLevel + 1}</span>
                 </div>
-                <span className="text-slate-400 font-mono text-[11px]">0 XP</span>
+                <span className="text-slate-400 font-mono text-[11px]">{totalExp.toLocaleString()} XP</span>
               </div>
               <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
-                <div className="bg-indigo-600 h-full rounded-full w-[5%] transition-all"></div>
+                <div
+                  className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
               </div>
               <p className="text-[11px] text-slate-400 mt-1.5 text-right font-medium">
-                Còn 0 XP đến level tiếp
+                Còn {xpToNextLevel.toLocaleString()} XP đến level tiếp
               </p>
             </div>
           </div>

@@ -30,3 +30,27 @@ export const authorize = (...roles) => {
     next();
   };
 };
+
+// Kiểm tra quyền ADMIN cụ thể
+export const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'ADMIN') {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'Yêu cầu quyền quản trị viên!'
+    });
+  }
+};
+
+// Kiểm tra quyền GIẢNG VIÊN (INSTRUCTOR)
+export const isInstructor = (req, res, next) => {
+  if (req.user && (req.user.role === 'INSTRUCTOR' || req.user.role === 'ADMIN')) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'Yêu cầu quyền giảng viên!'
+    });
+  }
+};

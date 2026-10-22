@@ -1,71 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, ShieldCheck, Search, Filter, Clock, 
-  User, CheckCircle2, AlertTriangle, Key, Crown, UserX 
+  User, CheckCircle2, AlertTriangle, Key, Crown, UserX, Loader2
 } from 'lucide-react';
+import api from '../../api/axios';
 
 export default function AuditLogsPage() {
-  const [logs, setLogs] = useState([
-    {
-      id: 'log-101',
-      actor: 'Admin System (Hoàng Anh Tuấn)',
-      actorRole: 'ADMIN',
-      action: 'ROLE_CHANGE',
-      details: 'Nâng cấp vai trò người dùng "Nguyễn Văn Minh" từ Học viên (STUDENT) ➔ Giảng viên (INSTRUCTOR)',
-      ipAddress: '113.161.45.12',
-      timestamp: '2026-10-09 11:45:10',
-      level: 'WARNING' // 'INFO' | 'WARNING' | 'CRITICAL'
-    },
-    {
-      id: 'log-102',
-      actor: 'Admin System (Hoàng Anh Tuấn)',
-      actorRole: 'ADMIN',
-      action: 'COURSE_APPROVED',
-      details: 'Phê duyệt xuất bản khóa học "IELTS Intensive Writing Task 2" của Giảng viên Phạm Thị Lan',
-      ipAddress: '113.161.45.12',
-      timestamp: '2026-10-09 10:20:05',
-      level: 'INFO'
-    },
-    {
-      id: 'log-103',
-      actor: 'Giảng viên Phạm Thị Lan',
-      actorRole: 'INSTRUCTOR',
-      action: 'LESSON_CREATED',
-      details: 'Tạo bài học mới "Part 2 Speaking Cue Card Strategy" trong khóa học IELTS',
-      ipAddress: '14.232.18.99',
-      timestamp: '2026-10-09 09:12:40',
-      level: 'INFO'
-    },
-    {
-      id: 'log-104',
-      actor: 'Admin System (Hoàng Anh Tuấn)',
-      actorRole: 'ADMIN',
-      action: 'PRO_UPGRADE',
-      details: 'Kích hoạt gói PRO vĩnh viễn cho học viên "Trần Thu Hà" (Giao dịch MBBank #88219)',
-      ipAddress: '113.161.45.12',
-      timestamp: '2026-10-08 16:50:00',
-      level: 'INFO'
-    },
-    {
-      id: 'log-105',
-      actor: 'Admin System (Hoàng Anh Tuấn)',
-      actorRole: 'ADMIN',
-      action: 'USER_BLOCKED',
-      details: 'Khóa tài khoản "cuongspam99@gmail.com" do vi phạm quy định phát ngôn cộng đồng',
-      ipAddress: '113.161.45.12',
-      timestamp: '2026-10-08 14:05:22',
-      level: 'CRITICAL'
-    }
-  ]);
-
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('ALL');
 
+  useEffect(() => {
+    fetchLogs(1);
+  }, []);
+
+  const fetchLogs = async (page = 1) => {
+    try {
+      setLoading(true);
+      const response = await api.get('/admin/audit-logs', {
+        params: { page, limit: 50 }
+      });
+      if (response.data.success) {
+        setLogs(response.data.logs);
+        setPagination(response.data.pagination);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải nhật ký:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper to determine log level based on action type
+  const getLogLevel = (action) => {
+    const warningActions = ['LOGIN_FAILED', 'UPDATE_COURSE_INSTRUCTOR', 'CHANGE_PASSWORD'];
+    const criticalActions = ['DELETE_LESSON', 'USER_BLOCKED'];
+
+    if (criticalActions.includes(action)) return 'CRITICAL';
+    if (warningActions.includes(action)) return 'WARNING';
+    return 'INFO';
+  };
+
   const filteredLogs = logs.filter((l) => {
-    const matchesLevel = levelFilter === 'ALL' || l.level === levelFilter;
+    const level = getLogLevel(l.action);
+    const matchesLevel = levelFilter === 'ALL' || level === levelFilter;
+    const actorName = l.user?.fullName || 'Hệ thống';
     const matchesSearch = 
-      l.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.actor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.details || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      actorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       l.action.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesLevel && matchesSearch;
   });
@@ -76,10 +60,10 @@ export default function AuditLogsPage() {
       <div>
         <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
           <Activity className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-          <span>Nhật Ký Nhật Ký Thao Tác Hệ Thống (Audit Logs)</span>
+          <span>Nhật Ký Thao Tác Hệ Thống (Audit Logs)</span>
         </h1>
         <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 mt-1">
-          Ghi vết toàn bộ hành động thay đổi quyền hạn, kiểm duyệt bài đăng & kích hoạt gói PRO.
+          Ghi vết toàn bộ hành động đăng ký, đăng nhập, quản lý bài học và thay đổi giảng viên.
         </p>
       </div>
 
@@ -132,56 +116,92 @@ export default function AuditLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                  
-                  {/* Timestamp & IP */}
-                  <td className="py-4 px-5 font-mono text-[11px]">
-                    <div className="text-slate-900 dark:text-white font-extrabold">{log.timestamp}</div>
-                    <div className="text-slate-400">IP: {log.ipAddress}</div>
-                  </td>
+              {loading ? (
+                [1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-4 px-5">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24 mb-1"></div>
+                      <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-16"></div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-20 mb-1"></div>
+                      <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-12"></div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    </td>
+                    <td className="py-4 px-5">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full mb-1"></div>
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-16 ml-auto"></div>
+                    </td>
+                  </tr>
+                ))
+              ) : filteredLogs.length > 0 ? (
+                filteredLogs.map((log) => {
+                  const level = getLogLevel(log.action);
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                      {/* Timestamp & IP */}
+                      <td className="py-4 px-5 font-mono text-[11px]">
+                        <div className="text-slate-900 dark:text-white font-extrabold">
+                          {new Date(log.createdAt).toLocaleString('vi-VN')}
+                        </div>
+                        <div className="text-slate-400">IP: {log.ipAddress || 'Unknown'}</div>
+                      </td>
 
-                  {/* Actor */}
-                  <td className="py-4 px-4">
-                    <div className="font-extrabold text-slate-900 dark:text-white">{log.actor}</div>
-                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
-                      {log.actorRole}
-                    </span>
-                  </td>
+                      {/* Actor */}
+                      <td className="py-4 px-4">
+                        <div className="font-extrabold text-slate-900 dark:text-white">
+                          {log.user?.fullName || 'Hệ thống'}
+                        </div>
+                        <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
+                          {log.user?.role || 'SYSTEM'}
+                        </span>
+                      </td>
 
-                  {/* Action Code */}
-                  <td className="py-4 px-4">
-                    <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-mono text-[10px] font-black text-slate-700 dark:text-slate-300">
-                      {log.action}
-                    </span>
-                  </td>
+                      {/* Action Code */}
+                      <td className="py-4 px-4">
+                        <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-mono text-[10px] font-black text-slate-700 dark:text-slate-300">
+                          {log.action}
+                        </span>
+                      </td>
 
-                  {/* Details */}
-                  <td className="py-4 px-5 font-medium text-slate-700 dark:text-slate-200 leading-snug">
-                    {log.details}
-                  </td>
+                      {/* Details */}
+                      <td className="py-4 px-5 font-medium text-slate-700 dark:text-slate-200 leading-snug">
+                        {log.details}
+                      </td>
 
-                  {/* Level Badge */}
-                  <td className="py-4 px-4 text-right">
-                    {log.level === 'INFO' && (
-                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-600 font-black text-[10px] uppercase">
-                        INFO
-                      </span>
-                    )}
-                    {log.level === 'WARNING' && (
-                      <span className="px-2.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950 text-amber-600 font-black text-[10px] uppercase">
-                        WARNING
-                      </span>
-                    )}
-                    {log.level === 'CRITICAL' && (
-                      <span className="px-2.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 font-black text-[10px] uppercase">
-                        CRITICAL
-                      </span>
-                    )}
+                      {/* Level Badge */}
+                      <td className="py-4 px-4 text-right">
+                        {level === 'INFO' && (
+                          <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-600 font-black text-[10px] uppercase">
+                            INFO
+                          </span>
+                        )}
+                        {level === 'WARNING' && (
+                          <span className="px-2.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950 text-amber-600 font-black text-[10px] uppercase">
+                            WARNING
+                          </span>
+                        )}
+                        {level === 'CRITICAL' && (
+                          <span className="px-2.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 font-black text-[10px] uppercase">
+                            CRITICAL
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="5" className="py-12 text-center text-slate-500 font-bold">
+                    Không tìm thấy nhật ký nào phù hợp.
                   </td>
-
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
