@@ -18,20 +18,10 @@ export function AuthProvider({ children }) {
   const openLoginModal = () => setIsLoginModalOpen(true);
   const closeLoginModal = () => setIsLoginModalOpen(false);
 
-  const openProModal = () => setIsProModalOpen(true);
+  const openProModal = () => {};
   const closeProModal = () => setIsProModalOpen(false);
 
-  const handleProUpgrade = () => {
-    const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-    if (user || (savedUser && token)) {
-      // If already logged in, show Pro checkout modal directly
-      setIsProModalOpen(true);
-    } else {
-      // If not logged in, prompt login modal first
-      setIsLoginModalOpen(true);
-    }
-  };
+  const handleProUpgrade = () => {};
 
   // Kiểm tra trạng thái đăng nhập khi ứng dụng khởi chạy
   useEffect(() => {

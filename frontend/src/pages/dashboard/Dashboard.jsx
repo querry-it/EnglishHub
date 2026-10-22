@@ -317,10 +317,6 @@ export default function Dashboard() {
                 <div
                   key={`${lesson.id}-${idx}`}
                   onClick={() => {
-                    if (lesson.isPro) {
-                      openProModal();
-                      return;
-                    }
                     setSelectedLesson(lesson);
                     setIsStudyModeOpen(true);
                   }}

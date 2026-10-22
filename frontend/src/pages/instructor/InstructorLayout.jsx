@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 
 import InstructorDashboard from './InstructorDashboard';
 import InstructorCourses from './InstructorCourses';
-import CreateLesson from './CreateLesson';
+import InstructorGrading from './InstructorGrading';
 import InstructorStudents from './InstructorStudents';
 
 function InstructorSidebar({ onClose }) {
@@ -17,7 +17,7 @@ function InstructorSidebar({ onClose }) {
   const navItems = [
     { icon: Home, label: 'Trang chủ', path: '/instructor' },
     { icon: BookOpen, label: 'Khóa học của tôi', path: '/instructor/courses' },
-    { icon: PlusCircle, label: 'Soạn bài học mới', path: '/instructor/create-lesson' },
+    { icon: CheckSquare, label: 'Chấm bài kiểm tra', path: '/instructor/grading' },
     { icon: Users, label: 'Danh sách học viên', path: '/instructor/students' },
   ];
 
@@ -103,7 +103,7 @@ export default function InstructorLayout() {
           <Routes>
             <Route path="/instructor" element={<InstructorDashboard />} />
             <Route path="/instructor/courses" element={<InstructorCourses />} />
-            <Route path="/instructor/create-lesson" element={<CreateLesson />} />
+            <Route path="/instructor/grading" element={<InstructorGrading />} />
             <Route path="/instructor/students" element={<InstructorStudents />} />
           </Routes>
         </main>

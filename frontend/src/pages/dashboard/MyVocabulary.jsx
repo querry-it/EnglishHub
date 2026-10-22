@@ -91,22 +91,6 @@ export default function MyVocabulary() {
             </p>
           </div>
 
-          {/* ================= 2. FREE PLAN STORAGE BANNER ================= */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-sky-50 dark:bg-sky-950/60 border-2 border-sky-200 dark:border-sky-800/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-sky-900 dark:text-sky-200">
-              <Sparkles className="w-4 h-4 text-sky-500 shrink-0" />
-              <span>Gói miễn phí: bạn được lưu tối đa 100 từ. Hiện có: {vocabList.length}/100</span>
-            </div>
-
-            <button
-              onClick={openProModal}
-              className="px-5 py-2.5 rounded-2xl bg-[#1E2540] dark:bg-indigo-600 hover:bg-[#151a2e] text-white font-black text-xs uppercase tracking-wider shadow-md transition-transform active:scale-98 shrink-0 flex items-center gap-1.5 self-end sm:self-auto"
-            >
-              <Crown className="w-4 h-4 text-amber-300 fill-current" />
-              <span>NÂNG CẤP</span>
-            </button>
-          </div>
-
           {/* ================= 3. SUB-TABS (DANH SÁCH | THẺ GHI NHỚ | VIẾT) ================= */}
           <div className="flex items-center justify-center gap-2 pt-1">
             <button

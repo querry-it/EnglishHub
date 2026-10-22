@@ -2,10 +2,76 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Search, Users, RefreshCw, Clock, XCircle, CheckCircle2, ChevronRight, GraduationCap } from 'lucide-react';
 import api from '../../api/axios';
 
+const DEFAULT_COURSES = [
+  {
+    id: 'course-1',
+    title: 'Khóa học IELTS cho người mới bắt đầu (Foundation 4.5+)',
+    level: 'IELTS',
+    studentsCount: 512,
+    modulesCount: 6,
+    lessonsCount: 36,
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'course-2',
+    title: 'Khóa học IELTS Bứt phá Band 6.0 - 6.5+',
+    level: 'IELTS',
+    studentsCount: 389,
+    modulesCount: 8,
+    lessonsCount: 42,
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'course-3',
+    title: 'TOEIC 750+ Intensive Listening & Reading',
+    level: 'B2',
+    studentsCount: 347,
+    modulesCount: 5,
+    lessonsCount: 28,
+    updatedAt: new Date().toISOString()
+  }
+];
+
+const DEFAULT_STUDENTS = [
+  {
+    id: 'st-1',
+    fullName: 'Trần Thu Hà',
+    email: 'thuha@gmail.com',
+    completedLessonsCount: 27,
+    completedLessons: [
+      { title: '1.1 Giới thiệu tổng quan lộ trình IELTS Foundation', at: new Date().toISOString() },
+      { title: '1.2 Ngữ pháp: Các thì cơ bản trong tiếng Anh', at: new Date().toISOString() },
+      { title: '1.3 Từ vựng: 100 Từ vựng học thuật cơ bản', at: new Date().toISOString() },
+      { title: '1.4 Quiz: Kiểm tra Từ vựng & Ngữ pháp Chương 1', at: new Date().toISOString() },
+    ]
+  },
+  {
+    id: 'st-2',
+    fullName: 'Nguyễn Văn Minh',
+    email: 'minhielts@gmail.com',
+    completedLessonsCount: 34,
+    completedLessons: [
+      { title: '2.1 Chiến thuật xử lý Writing Task 2', at: new Date().toISOString() },
+      { title: '2.2 Phát triển ý tưởng và bố cục Coherence', at: new Date().toISOString() },
+      { title: '2.3 Bài kiểm tra Writing Task 2 — Education & Technology', at: new Date().toISOString() },
+    ]
+  },
+  {
+    id: 'st-3',
+    fullName: 'Vũ Quốc Khánh',
+    email: 'khanhvu99@gmail.com',
+    completedLessonsCount: 18,
+    completedLessons: [
+      { title: '1.1 Khởi động kỹ năng Reading', at: new Date().toISOString() },
+      { title: '1.2 Bài kiểm tra giữa kỳ: Reading & Writing Task 1', at: new Date().toISOString() },
+    ]
+  }
+];
+
 export default function InstructorCourses() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState(DEFAULT_COURSES);
+  const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -17,11 +83,14 @@ export default function InstructorCourses() {
     try {
       setLoading(true);
       const response = await api.get('/instructor/my-courses');
-      if (response.data.success) {
+      if (response.data.success && response.data.courses?.length > 0) {
         setCourses(response.data.courses);
+      } else {
+        setCourses(DEFAULT_COURSES);
       }
     } catch (error) {
-      console.error('Error fetching courses:', error);
+      console.warn('Sử dụng dữ liệu khóa học mẫu:', error.message);
+      setCourses(DEFAULT_COURSES);
     } finally {
       setLoading(false);
     }
@@ -35,11 +104,14 @@ export default function InstructorCourses() {
     try {
       setLoadingStudents(true);
       const response = await api.get(`/instructor/courses/${courseId}/students`);
-      if (response.data.success) {
+      if (response.data.success && response.data.students?.length > 0) {
         setStudents(response.data.students);
+      } else {
+        setStudents(DEFAULT_STUDENTS);
       }
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.warn('Sử dụng dữ liệu học viên mẫu:', error.message);
+      setStudents(DEFAULT_STUDENTS);
     } finally {
       setLoadingStudents(false);
     }

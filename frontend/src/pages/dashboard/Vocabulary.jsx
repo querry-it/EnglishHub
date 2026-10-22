@@ -250,10 +250,6 @@ export default function Vocabulary() {
     <div 
       key={deck.id}
       onClick={() => {
-        if (deck.isPro) {
-          openProModal();
-          return;
-        }
         setActiveDeck(deck); 
         setCardIndex(0); 
         setIsFlipped(false); 
@@ -261,11 +257,7 @@ export default function Vocabulary() {
         setInputGuessText(''); 
         setSelectedQuizOption(null); 
       }}
-      className={`group bg-white dark:bg-slate-900 rounded-3xl p-5 flex flex-col justify-between space-y-4 cursor-pointer transition-all duration-300 border-2 ${
-        deck.isPro 
-          ? 'border-amber-400 dark:border-amber-500/80 shadow-md shadow-amber-500/10 hover:shadow-xl' 
-          : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-xl'
-      }`}
+      className="group bg-white dark:bg-slate-900 rounded-3xl p-5 flex flex-col justify-between space-y-4 cursor-pointer transition-all duration-300 border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-xl"
     >
       <div className={`relative h-44 rounded-2xl ${deck.color || 'bg-slate-800'} p-0 flex flex-col justify-between overflow-hidden shadow-inner text-white`}>
         {deck.thumbnail ? (
@@ -278,11 +270,6 @@ export default function Vocabulary() {
           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-black/30 backdrop-blur-md">
             {deck.category || 'GENERAL'}
           </span>
-          {deck.isPro && (
-            <span className="px-2 py-0.5 rounded bg-amber-400 text-amber-950 font-black text-[10px] flex items-center gap-1 shadow-xs">
-              <Crown className="w-3 h-3 fill-current" /> PRO
-            </span>
-          )}
         </div>
 
         <div className="z-10 my-auto text-center px-4">
@@ -308,12 +295,7 @@ export default function Vocabulary() {
           </span>
         </div>
 
-        <button className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-          deck.isPro 
-            ? 'bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white shadow-md' 
-            : 'bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white shadow-md'
-        }`}>
-          {deck.isPro && <Crown className="w-3.5 h-3.5 text-amber-300 fill-current" />}
+        <button className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white shadow-md">
           <span>BẮT ĐẦU HỌC</span>
         </button>
       </div>

@@ -98,7 +98,7 @@ export default function Shop() {
     },
     {
       id: 'item-pro-frame',
-      title: 'Khung Kim Cương Pro',
+      title: 'Khung Kim Cương',
       category: '# Khung avatar',
       type: 'frame',
       badge: 'EPIC',
