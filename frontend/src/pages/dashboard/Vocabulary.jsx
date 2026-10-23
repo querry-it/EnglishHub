@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, Gamepad2, HelpCircle, Trophy, Sparkles, Plus, Search, 
   FolderPlus, Crown, Award, CheckCircle2, Zap, TrendingUp, Target, 
@@ -10,6 +10,7 @@ import {
 import AppMascot from '../../components/AppMascot';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
 import axios from 'axios';
 
 export default function Vocabulary() {
@@ -17,6 +18,13 @@ export default function Vocabulary() {
   const { user , openProModal } = useAuth();
   const [activeDeck, setActiveDeck] = useState(null);
   const [deckDetail, setDeckDetail] = useState(null);
+  const audioRef = useRef(null);
+  const [reviewedWordIds, setReviewedWordIds] = useState([]);
+  const [isVocabularyProgressLoading, setIsVocabularyProgressLoading] = useState(false);
+  const [vocabularyProgressError, setVocabularyProgressError] = useState('');
+  const [isDeckDetailLoading, setIsDeckDetailLoading] = useState(false);
+  const [deckDetailError, setDeckDetailError] = useState('');
+  const [deckDetailReload, setDeckDetailReload] = useState(0);
   const [selectedTag, setSelectedTag] = useState('Tất cả');
   const [decks, setDecks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,20 +88,55 @@ export default function Vocabulary() {
   // Fetch Deck Details when activeDeck changes
   useEffect(() => {
     if (activeDeck && user) {
+      let cancelled = false;
+      setDeckDetail(null);
+      setDeckDetailError('');
+      setIsDeckDetailLoading(true);
+      setReviewedWordIds([]);
+      setIsVocabularyProgressLoading(true);
+      setVocabularyProgressError('');
+
       const fetchDetail = async () => {
         try {
           const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/vocabulary/decks/${activeDeck.id}`);
-          setDeckDetail(response.data);
-          setCardIndex(0);
+          if (!cancelled) {
+            setDeckDetail(response.data);
+            setCardIndex(0);
+          }
+
+          try {
+            const progressResponse = await api.get(`/vocabulary/decks/${activeDeck.id}/progress`);
+            if (!cancelled) setReviewedWordIds(progressResponse.data.reviewedWordIds || []);
+          } catch (error) {
+            console.error('Error fetching vocabulary progress:', error);
+            if (!cancelled) setVocabularyProgressError('Không thể tải tiến độ ôn từ vựng.');
+          } finally {
+            if (!cancelled) setIsVocabularyProgressLoading(false);
+          }
         } catch (error) {
           console.error("Error fetching deck detail:", error);
+          if (!cancelled) {
+            setDeckDetailError('Không thể tải bộ từ vựng. Vui lòng thử lại.');
+            setIsVocabularyProgressLoading(false);
+          }
+        } finally {
+          if (!cancelled) setIsDeckDetailLoading(false);
         }
       };
       fetchDetail();
+
+      return () => {
+        cancelled = true;
+      };
     } else {
       setDeckDetail(null);
+      setIsDeckDetailLoading(false);
+      setDeckDetailError('');
+      setReviewedWordIds([]);
+      setIsVocabularyProgressLoading(false);
+      setVocabularyProgressError('');
     }
-  }, [activeDeck, user]);
+  }, [activeDeck, user, deckDetailReload]);
 
   const filterTags = [
     'Tất cả', 'General', 'TOEIC', 'IELTS', 'Oxford', 'Communication', 'Business', 'Academic'
@@ -131,6 +174,7 @@ export default function Vocabulary() {
         image: w.imageUrl || 'https://picsum.photos/300/200',
         ipaUS: w.phonetic,
         ipaUK: w.phonetic,
+        audioUrl: w.audioUrl,
         quizOptions,
         quizReverseOptions
       };
@@ -139,6 +183,10 @@ export default function Vocabulary() {
 
   const currentCards = deckDetail ? processWords(deckDetail.words) : [];
   const activeCard = currentCards.length > 0 ? currentCards[cardIndex % currentCards.length] : null;
+  const reviewedCount = currentCards.filter(card => reviewedWordIds.includes(card.id)).length;
+  const vocabularyProgressPercent = currentCards.length
+    ? Math.round((reviewedCount / currentCards.length) * 100)
+    : 0;
 
   // Feedback form state
   const [feedbackMsg, setFeedbackMsg] = useState('');
@@ -158,38 +206,77 @@ export default function Vocabulary() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/flashcards/review`, {
         word: activeCard.englishWord,
-        quality: quality
+        quality,
+        vocabularyId: activeCard.id
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      setReviewedWordIds(prev => prev.includes(activeCard.id) ? prev : [...prev, activeCard.id]);
+      setVocabularyProgressError('');
       setIsFlipped(false);
       setCardIndex((prev) => (prev + 1) % currentCards.length);
       setReviewCount((prev) => prev + 1);
     } catch (error) {
       console.error("SM-2 API Error:", error);
-      // Fallback transition
-      setIsFlipped(false);
-      setCardIndex((prev) => (prev + 1) % currentCards.length);
+      setVocabularyProgressError('Không thể lưu tiến độ ôn từ. Vui lòng thử lại.');
     }
   };
 
   const subTopics = [
-    { id: 1, name: 'Tổng quan', count: deckDetail?.words?.length || 0, totalCards: deckDetail?.words?.length || 0, icon: '📊', progress: '0%' },
-    { id: 2, name: 'Từ mới', count: deckDetail?.words?.length || 0, totalCards: deckDetail?.words?.length || 0, icon: '🆕', progress: '0%' },
-    { id: 3, name: 'Đang ôn', count: '0 từ', totalCards: 0, icon: '🔄', progress: '0%' },
-    { id: 4, name: 'Đã thuộc', count: '0 từ', totalCards: 0, icon: '✅', progress: '0%' },
+    { id: 1, name: 'Tổng quan', count: currentCards.length, totalCards: currentCards.length, icon: '📊', progress: `${vocabularyProgressPercent}%` },
+    { id: 2, name: 'Từ mới', count: `${currentCards.length - reviewedCount} từ`, totalCards: currentCards.length, icon: '🆕', progress: `${vocabularyProgressPercent}%` },
+    { id: 3, name: 'Đang ôn', count: `${reviewedCount} từ`, totalCards: currentCards.length, icon: '🔄', progress: `${vocabularyProgressPercent}%` },
+    { id: 4, name: 'Đã ôn', count: `${reviewedCount} từ`, totalCards: currentCards.length, icon: '✅', progress: `${vocabularyProgressPercent}%` },
   ];
 
-  const speakText = (text, lang = 'en-US') => {
-    if (!window.speechSynthesis) return;
+  const speakText = (text, lang = 'en-US', audioUrl = '') => {
+    const normalizedText = typeof text === 'string' ? text.trim() : '';
+    if (!normalizedText) return;
+
+    const speakWithSynthesis = () => {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        console.error('Speech synthesis is not supported in this browser.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(normalizedText);
+      utterance.lang = lang;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    if (audioUrl) {
+      window.speechSynthesis?.cancel();
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      const fallbackToSynthesis = () => {
+        if (audioRef.current !== audio) return;
+        audioRef.current = null;
+        speakWithSynthesis();
+      };
+
+      audio.onended = () => {
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+      audio.onerror = fallbackToSynthesis;
+      audio.play().catch(fallbackToSynthesis);
+      return;
+    }
+
+    if (!('speechSynthesis' in window)) {
+      console.error('Speech synthesis is not supported in this browser.');
+      return;
+    }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    window.speechSynthesis.speak(utterance);
+    speakWithSynthesis();
   };
 
   const handleCheckAnswer = () => {
@@ -400,6 +487,24 @@ export default function Vocabulary() {
             </div>
 
           </div>
+        ) : isDeckDetailLoading || (!deckDetail && !deckDetailError) ? (
+          <div className="max-w-7xl mx-auto px-4 py-16 text-center text-slate-500 font-bold">
+            Đang tải bộ từ vựng...
+          </div>
+        ) : deckDetailError ? (
+          <div className="max-w-7xl mx-auto px-4 py-16 flex flex-col items-center gap-4 text-center">
+            <p className="text-slate-600 dark:text-slate-300 font-bold">{deckDetailError}</p>
+            <button
+              onClick={() => setDeckDetailReload(value => value + 1)}
+              className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold"
+            >
+              Thử tải lại
+            </button>
+          </div>
+        ) : !activeCard ? (
+          <div className="max-w-7xl mx-auto px-4 py-16 text-center text-slate-500 font-bold">
+            Bộ từ vựng này chưa có thẻ nào.
+          </div>
         ) : (
           /* ================= INTERACTIVE STUDY WORKSPACE (MATCHING ALL SCREENSHOTS) ================= */
           <div className="max-w-7xl mx-auto px-2 sm:px-4 space-y-5 animate-fade-in">
@@ -503,16 +608,23 @@ export default function Vocabulary() {
           {/* ================= 2. PROGRESS BANNER BAR ================= */}
           <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
             <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              <span>TIẾN ĐỘ - {subTopics[selectedSubTopicIndex].name}</span>
-              <span className="font-mono">{cardIndex + 1} / {subTopics[selectedSubTopicIndex].totalCards} THẺ</span>
+              <span>TIẾN ĐỘ ÔN TỪ</span>
+              <span className="font-mono">
+                {isVocabularyProgressLoading ? 'ĐANG TẢI...' : `${reviewedCount} / ${currentCards.length} TỪ ĐÃ ÔN (${vocabularyProgressPercent}%)`}
+              </span>
             </div>
 
             <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
               <div 
                 className="bg-indigo-600 h-full transition-all duration-300 rounded-full"
-                style={{ width: `${((cardIndex + 1) / subTopics[selectedSubTopicIndex].totalCards) * 100}%` }}
+                style={{ width: `${vocabularyProgressPercent}%` }}
               />
             </div>
+            {vocabularyProgressError && (
+              <p role="alert" className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                {vocabularyProgressError}
+              </p>
+            )}
           </div>
 
           {/* ================= 3. MAIN 2-COLUMN STUDY STUDIO CONTAINER ================= */}
@@ -718,7 +830,7 @@ export default function Vocabulary() {
                           </p>
 
                           <button 
-                            onClick={(e) => { e.stopPropagation(); speakText(activeCard.englishWord); }}
+                            onClick={(e) => { e.stopPropagation(); speakText(activeCard.englishWord, 'en-US', activeCard.audioUrl); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs mx-auto flex items-center gap-1.5 hover:bg-slate-200 transition-colors"
                           >
                             <Volume2 className="w-4 h-4 text-indigo-600" /> Nghe phát âm
@@ -968,7 +1080,7 @@ export default function Vocabulary() {
                       {/* Phonetic Pronunciation Audio Buttons */}
                       <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-300">
                         <button 
-                          onClick={() => speakText(activeCard.englishWord, 'en-US')}
+                          onClick={() => speakText(activeCard.englishWord, 'en-US', activeCard.audioUrl)}
                           className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
                         >
                           <span className="font-mono text-indigo-600">US {activeCard.ipaUS}</span>
