@@ -301,6 +301,10 @@ export default function Listening() {
   ];
 
   const [lessons, setLessons] = useState([]);
+  const [lessonDetail, setLessonDetail] = useState(null);
+  const [isLessonDetailLoading, setIsLessonDetailLoading] = useState(false);
+  const [lessonDetailError, setLessonDetailError] = useState('');
+  const [lessonDetailReload, setLessonDetailReload] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
@@ -347,6 +351,41 @@ export default function Listening() {
     fetchLessons(1, false);
   }, [selectedTag]);
 
+  React.useEffect(() => {
+    if (!lessonId || String(customLesson?.id) === String(lessonId)) {
+      setLessonDetail(null);
+      setLessonDetailError('');
+      return;
+    }
+
+    let cancelled = false;
+    setIsLessonDetailLoading(true);
+    setLessonDetailError('');
+
+    api.get(`/lessons/${lessonId}`)
+      .then(response => {
+        if (cancelled) return;
+        if (response.data.success) {
+          setLessonDetail(response.data.lesson);
+        } else {
+          setLessonDetailError(response.data.message || 'Không thể tải nội dung bài học.');
+        }
+      })
+      .catch(error => {
+        console.error('Lỗi khi tải nội dung bài học:', error);
+        if (!cancelled) {
+          setLessonDetailError(error.response?.data?.message || 'Không thể tải nội dung bài học.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLessonDetailLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId, customLesson?.id, lessonDetailReload]);
+
   const handleLoadMore = () => {
     if (pagination.page < pagination.totalPages) {
       fetchLessons(pagination.page + 1, true);
@@ -354,6 +393,9 @@ export default function Listening() {
   };
 
   const activeLessonDetail = lessons.find(l => String(l.id) === String(lessonId));
+  const selectedLessonDetail = lessonDetail && String(lessonDetail.id) === String(lessonId)
+    ? lessonDetail
+    : null;
 
   const handleCreateCustomLesson = () => {
     if (!youtubeUrl.trim()) return;
@@ -378,13 +420,55 @@ export default function Listening() {
     });
   };
 
-  const activeLesson = activeLessonDetail || customLesson || [...movieLessons, ...dailyLessons].find(l => String(l.id) === String(lessonId)) || movieLessons[0];
+  const activeLesson = selectedLessonDetail
+    ? {
+        ...activeLessonDetail,
+        ...selectedLessonDetail,
+        transcript: selectedLessonDetail.transcript || selectedLessonDetail.contentText,
+        transcripts: selectedLessonDetail.transcript || selectedLessonDetail.contentText
+      }
+    : activeLessonDetail || customLesson || [...movieLessons, ...dailyLessons].find(l => String(l.id) === String(lessonId)) || movieLessons[0];
+  const transcriptValue = selectedLessonDetail?.transcript || selectedLessonDetail?.contentText;
+  let hasSavedTranscript = false;
+  if (Array.isArray(transcriptValue)) {
+    hasSavedTranscript = transcriptValue.length > 0;
+  } else if (typeof transcriptValue === 'string' && transcriptValue.trim()) {
+    try {
+      const parsedTranscript = JSON.parse(transcriptValue);
+      hasSavedTranscript = Array.isArray(parsedTranscript)
+        ? parsedTranscript.length > 0
+        : Boolean(parsedTranscript);
+    } catch {
+      hasSavedTranscript = true;
+    }
+  }
 
   return (
     <div className="w-full min-h-screen pb-12">
         {lessonId ? (
           <ErrorBoundary>
-            {mode === 'shadowing' ? (
+            {isLessonDetailLoading && String(customLesson?.id) !== String(lessonId) ? (
+              <div className="min-h-[50vh] flex items-center justify-center gap-3 text-slate-500 font-bold">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Đang tải nội dung bài học...
+              </div>
+            ) : lessonDetailError ? (
+              <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 text-center">
+                <p className="text-slate-600 dark:text-slate-300 font-bold">{lessonDetailError}</p>
+                <button
+                  onClick={() => setLessonDetailReload(value => value + 1)}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold"
+                >
+                  Thử tải lại
+                </button>
+              </div>
+            ) : selectedLessonDetail && !hasSavedTranscript && String(customLesson?.id) !== String(lessonId) ? (
+              <div className="min-h-[50vh] flex items-center justify-center px-4 text-center">
+                <p className="max-w-xl text-slate-600 dark:text-slate-300 font-bold">
+                  Bài học này chưa có phụ đề được lưu. Hãy thêm phụ đề trong phần quản lý bài học để luyện nghe theo đúng video.
+                </p>
+              </div>
+            ) : mode === 'shadowing' ? (
               <ShadowingStudio lesson={activeLesson} />
             ) : (
               <DictationStudio lesson={activeLesson} />

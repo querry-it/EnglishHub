@@ -105,7 +105,7 @@ export const createLesson = async (req, res) => {
       data: {
         moduleId: module.id,
         title,
-        videoUrl: videoId,
+        videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
         duration: finalDuration,
         lessonType: lessonType === 'Dictation' ? 'PRACTICE' : 'SPEAKING',
         contentText: JSON.stringify(finalTranscript),
@@ -356,7 +356,7 @@ export const updateLesson = async (req, res) => {
       where: { id: id },
       data: {
         title,
-        videoUrl: videoId,
+        videoUrl: videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined,
         duration: req.body.duration,
         lessonType: lessonType === 'Dictation' ? 'PRACTICE' : (lessonType === 'Shadowing' ? 'SPEAKING' : undefined),
         contentText: transcript, // Frontend đã stringify nếu cần
@@ -489,4 +489,3 @@ export const extractTranscript = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-

@@ -3,7 +3,7 @@ import {
   Play, Pause, RotateCcw, ChevronLeft, ChevronRight, 
   Mic, Volume2, Settings, Keyboard, MessageSquare, 
   ChevronUp, ChevronDown, Edit3, AlertTriangle, Eye, EyeOff,
-  Video
+  Video, ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NoteModal from './NoteModal';
@@ -58,6 +58,11 @@ export default function ShadowingStudio({ lesson }) {
     }
     return `https://www.youtube.com/embed/${url}`;
   };
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(currentLesson.videoUrl);
+  const youtubeWatchUrl = youtubeEmbedUrl.replace(
+    'https://www.youtube.com/embed/',
+    'https://www.youtube.com/watch?v='
+  );
 
   // IPA Dictionary Lookup Map
   const ipaDict = {
@@ -309,15 +314,25 @@ export default function ShadowingStudio({ lesson }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between font-black text-xs text-slate-700 dark:text-slate-300 tracking-wider">
                 <span>VIDEO BÀI HỌC</span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
-                  ⏱ {currentLesson.duration || "0:53"}
+                <span className="flex items-center gap-2">
+                  <a
+                    href={youtubeWatchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline normal-case tracking-normal"
+                  >
+                    Mở trên YouTube <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
+                    ⏱ {currentLesson.duration || "0:53"}
+                  </span>
                 </span>
               </div>
               <div className="relative aspect-video rounded-3xl overflow-hidden bg-slate-950 border-2 border-slate-200 dark:border-slate-800 shadow-lg">
                 <iframe
                   ref={iframeRef}
                   className="w-full h-full"
-                  src={`${getYouTubeEmbedUrl(currentLesson.videoUrl)}?enablejsapi=1&autoplay=0&rel=0`}
+                  src={`${youtubeEmbedUrl}?enablejsapi=1&autoplay=0&rel=0`}
                   title={currentLesson.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen

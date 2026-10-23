@@ -3,7 +3,7 @@ import {
   Play, Pause, RotateCcw, ChevronLeft, ChevronRight, Eye, 
   Settings, Keyboard, Mic, MessageSquare, AlertTriangle, 
   Edit3, Crown, Lock, ChevronDown, ChevronUp, FastForward,
-  CheckCircle2, Volume2, Sparkles, Sliders
+  CheckCircle2, Volume2, Sparkles, Sliders, ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NoteModal from './NoteModal';
@@ -116,16 +116,25 @@ export default function DictationStudio({ lesson }) {
   // YouTube Embed URL Parser to prevent "Video unavailable" error
   const getYouTubeEmbedUrl = (url) => {
     if (!url) return "https://www.youtube.com/embed/M7lc1UVf-VE";
-    if (url.includes("youtube.com/embed/")) {
-      return url.split("?")[0];
+    const videoUrl = url.trim();
+    if (/^[\w-]{11}$/.test(videoUrl)) {
+      return `https://www.youtube.com/embed/${videoUrl}`;
+    }
+    if (videoUrl.includes("youtube.com/embed/")) {
+      return videoUrl.split("?")[0];
     }
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
+    const match = videoUrl.match(regExp);
     if (match && match[2] && match[2].length === 11) {
       return `https://www.youtube.com/embed/${match[2]}`;
     }
     return "https://www.youtube.com/embed/M7lc1UVf-VE";
   };
+  const videoEmbedUrl = getYouTubeEmbedUrl(currentLesson.embedUrl || currentLesson.videoUrl);
+  const youtubeWatchUrl = videoEmbedUrl.replace(
+    'https://www.youtube.com/embed/',
+    'https://www.youtube.com/watch?v='
+  );
 
   function parseDurationToSeconds(durationStr) {
     if (!durationStr) return 1224; // Default 20:24
@@ -398,8 +407,18 @@ export default function DictationStudio({ lesson }) {
               {/* Video Header & Timer */}
               <div className="flex items-center justify-between font-black text-xs text-slate-700 dark:text-slate-300 tracking-wider">
                 <span>VIDEO</span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
-                  ⏱ {currentLesson.duration || "20:24"}
+                <span className="flex items-center gap-2">
+                  <a
+                    href={youtubeWatchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline normal-case tracking-normal"
+                  >
+                    Mở trên YouTube <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
+                    ⏱ {currentLesson.duration || "20:24"}
+                  </span>
                 </span>
               </div>
 
@@ -408,7 +427,7 @@ export default function DictationStudio({ lesson }) {
                 <iframe
                   ref={iframeRef}
                   className="w-full h-full"
-                  src={`${getYouTubeEmbedUrl(currentLesson.embedUrl || currentLesson.videoUrl)}?enablejsapi=1&autoplay=0&rel=0`}
+                  src={`${videoEmbedUrl}?enablejsapi=1&autoplay=0&rel=0`}
                   title={currentLesson.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
@@ -866,4 +885,3 @@ export default function DictationStudio({ lesson }) {
     </div>
   );
 }
-
