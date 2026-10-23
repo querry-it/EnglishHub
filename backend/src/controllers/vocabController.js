@@ -185,34 +185,46 @@ export const commitVocabImport = async (req, res) => {
   try {
     const { deckTitle, category, words } = req.body;
 
-    const deck = await prisma.vocabDeck.create({
-      data: {
-        title: deckTitle,
-        category: category,
-        description: `Bộ từ vựng ${deckTitle} - Thể loại ${category || 'General'}`,
-        thumbnail: words[0]?.imageUrl || `https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&q=80`
-      }
-    });
+    if (!deckTitle?.trim() || !Array.isArray(words) || words.length === 0) {
+      return res.status(400).json({ message: 'Tên bộ từ và danh sách từ vựng là bắt buộc.' });
+    }
 
-    const importPromises = words.map(async (w) => {
-      const actualAudio = w.audioUrl || await getAudioUrl(w.word);
-      return prisma.masterVocabulary.create({
+    if (words.length > 200) {
+      return res.status(400).json({ message: 'Mỗi lần chỉ có thể nhập tối đa 200 từ.' });
+    }
+
+    if (words.some(word => !word?.word?.trim() || !word?.meaning?.trim())) {
+      return res.status(400).json({ message: 'Mỗi từ vựng cần có từ và nghĩa.' });
+    }
+
+    const preparedWords = await Promise.all(words.map(async word => ({
+      word: word.word.trim(),
+      phonetic: word.phonetic || null,
+      meaning: word.meaning,
+      definition: word.definition || null,
+      example: word.example || null,
+      imageUrl: word.imageUrl || null,
+      audioUrl: word.audioUrl || await getAudioUrl(word.word)
+    })));
+
+    const deckId = await prisma.$transaction(async (tx) => {
+      const deck = await tx.vocabDeck.create({
         data: {
-          deckId: deck.id,
-          word: w.word,
-          phonetic: w.phonetic,
-          meaning: w.meaning,
-          definition: w.definition,
-          example: w.example,
-          imageUrl: w.imageUrl,
-          audioUrl: actualAudio
+          title: deckTitle.trim(),
+          category: category || null,
+          description: `Bộ từ vựng ${deckTitle.trim()} - Thể loại ${category || 'General'}`,
+          thumbnail: words[0]?.imageUrl || 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&q=80'
         }
       });
+
+      await tx.masterVocabulary.createMany({
+        data: preparedWords.map(word => ({ ...word, deckId: deck.id }))
+      });
+
+      return deck.id;
     });
 
-    await Promise.all(importPromises);
-
-    res.json({ success: true, message: `Đã nhập thành công ${words.length} từ vào bộ ${deckTitle}!`, deckId: deck.id });
+    res.json({ success: true, message: `Đã nhập thành công ${words.length} từ vào bộ ${deckTitle}!`, deckId });
   } catch (error) {
     console.error("Lỗi Commit Import:", error);
     res.status(500).json({ message: "Lỗi khi lưu dữ liệu vào Database", error: error.message });
