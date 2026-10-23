@@ -8,6 +8,7 @@ import {
 import { Link } from 'react-router-dom';
 import NoteModal from './NoteModal';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
 
 export default function DictationStudio({ lesson }) {
   const { openProModal, updateProfile } = useAuth();
@@ -305,20 +306,11 @@ export default function DictationStudio({ lesson }) {
     const finalScore = totalWordsCount > 0 ? (wordsWithoutHints / totalWordsCount) * 100 : 0;
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/dictation/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          lessonId: currentLesson.id,
-          score: finalScore
-        })
+      const { data: result } = await api.post('/dictation/submit', {
+        lessonId: currentLesson.id,
+        score: finalScore
       });
 
-      const result = await response.json();
       if (result.success) {
         setSubmitResult(result.data);
         setIsFinished(true);
