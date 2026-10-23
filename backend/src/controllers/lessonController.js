@@ -468,6 +468,62 @@ export const getUserProgress = async (req, res) => {
   }
 };
 
+export const getCourseLessonProgress = async (req, res) => {
+  try {
+    const courseKey = req.params.courseKey?.trim();
+    if (!courseKey) {
+      return res.status(400).json({ success: false, message: 'Thiếu mã khóa học.' });
+    }
+
+    const progress = await prisma.courseLessonProgress.findMany({
+      where: { userId: req.user.id, courseKey, completed: true },
+      select: { lessonKey: true }
+    });
+
+    res.json({
+      success: true,
+      completedLessonIds: progress.map(item => item.lessonKey)
+    });
+  } catch (error) {
+    console.error('Lỗi khi tải tiến độ khóa học:', error);
+    res.status(500).json({ success: false, message: 'Không thể tải tiến độ khóa học.' });
+  }
+};
+
+export const setCourseLessonProgress = async (req, res) => {
+  try {
+    const courseKey = req.params.courseKey?.trim();
+    const lessonKey = req.params.lessonKey?.trim();
+    const { completed } = req.body;
+
+    if (!courseKey || !lessonKey || typeof completed !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'Thông tin tiến độ bài học không hợp lệ.' });
+    }
+
+    const progress = await prisma.courseLessonProgress.upsert({
+      where: {
+        userId_courseKey_lessonKey: {
+          userId: req.user.id,
+          courseKey,
+          lessonKey
+        }
+      },
+      update: { completed },
+      create: {
+        userId: req.user.id,
+        courseKey,
+        lessonKey,
+        completed
+      }
+    });
+
+    res.json({ success: true, completed: progress.completed });
+  } catch (error) {
+    console.error('Lỗi khi lưu tiến độ bài học:', error);
+    res.status(500).json({ success: false, message: 'Không thể lưu tiến độ bài học.' });
+  }
+};
+
 export const extractTranscript = async (req, res) => {
   try {
     const { videoUrl } = req.body;

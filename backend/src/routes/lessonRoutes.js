@@ -8,6 +8,8 @@ import {
   deleteLesson,
   getLessonDetail,
   getUserProgress,
+  getCourseLessonProgress,
+  setCourseLessonProgress,
   extractTranscript
 } from '../controllers/lessonController.js';
 
@@ -21,6 +23,8 @@ router.get('/admin/all', verifyToken, authorize('ADMIN'), getAllLessonsForAdmin)
 
 // Route lấy tiến độ học tập của User
 router.get('/my-progress', verifyToken, getUserProgress);
+router.get('/course-progress/:courseKey', verifyToken, getCourseLessonProgress);
+router.put('/course-progress/:courseKey/:lessonKey', verifyToken, setCourseLessonProgress);
 
 // Route lay chi tiet mot bai hoc
 router.get('/:id', verifyToken, getLessonDetail);

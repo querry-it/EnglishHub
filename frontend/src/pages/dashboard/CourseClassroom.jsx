@@ -9,6 +9,7 @@ import {
   FileCheck2, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
 import { fetchCourseCurriculumAPI } from '../../api/courseCurriculumService';
 import { 
   getStoredSubmissions, 
@@ -27,12 +28,9 @@ export default function CourseClassroom() {
   const [course, setCourse] = useState(null);
   const [currentLesson, setCurrentLesson] = useState(null);
   const [expandedModules, setExpandedModules] = useState({});
-
-  // Completed lesson tracking in localStorage
-  const [completedLessonIds, setCompletedLessonIds] = useState(() => {
-    const saved = localStorage.getItem(`course_completed_${courseId || 'default'}`);
-    return saved ? JSON.parse(saved) : ['ielts1-m1-l1', 'ielts1-m1-l2'];
-  });
+  const [completedLessonIds, setCompletedLessonIds] = useState([]);
+  const [isProgressLoading, setIsProgressLoading] = useState(false);
+  const [progressError, setProgressError] = useState('');
 
   // UI Navigation
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -100,17 +98,55 @@ export default function CourseClassroom() {
   ]);
   const [commentInput, setCommentInput] = useState('');
 
-  // Sync completion
   useEffect(() => {
-    if (courseId) {
-      localStorage.setItem(`course_completed_${courseId}`, JSON.stringify(completedLessonIds));
-    }
-  }, [completedLessonIds, courseId]);
+    if (!courseId) return undefined;
+
+    let cancelled = false;
+    setIsProgressLoading(true);
+    setCompletedLessonIds([]);
+    setProgressError('');
+
+    const loadProgress = async () => {
+      if (!user) {
+        try {
+          const saved = localStorage.getItem(`course_completed_${courseId}`);
+          const parsed = saved ? JSON.parse(saved) : [];
+          if (!cancelled) setCompletedLessonIds(Array.isArray(parsed) ? parsed : []);
+        } catch (error) {
+          console.error('Lỗi khi đọc tiến độ bài học trên thiết bị:', error);
+          if (!cancelled) {
+            setCompletedLessonIds([]);
+            setProgressError('Không thể đọc tiến độ đã lưu trên thiết bị.');
+          }
+        } finally {
+          if (!cancelled) setIsProgressLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await api.get(`/lessons/course-progress/${encodeURIComponent(courseId)}`);
+        if (!cancelled) {
+          setCompletedLessonIds(response.data.completedLessonIds || []);
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải tiến độ bài học:', error);
+        if (!cancelled) setProgressError('Không thể tải tiến độ bài học từ máy chủ.');
+      } finally {
+        if (!cancelled) setIsProgressLoading(false);
+      }
+    };
+
+    loadProgress();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, user?.id]);
 
   // Calculations
   const allLessons = useMemo(() => course?.modules?.flatMap(m => m.lessons) || [], [course]);
   const totalLessons = allLessons.length;
-  const completedCount = completedLessonIds.length;
+  const completedCount = allLessons.filter(lesson => completedLessonIds.includes(lesson.id)).length;
   const progressPercent = Math.round((completedCount / (totalLessons || 1)) * 100);
 
   const allAssignments = useMemo(() => {
@@ -149,14 +185,31 @@ export default function CourseClassroom() {
     setQuizAnswers({});
   };
 
-  const toggleLessonCompleted = (lessonId) => {
-    setCompletedLessonIds(prev => {
-      if (prev.includes(lessonId)) {
-        return prev.filter(id => id !== lessonId);
-      } else {
-        return [...prev, lessonId];
+  const toggleLessonCompleted = async (lessonId) => {
+    const completed = !completedLessonIds.includes(lessonId);
+    setProgressError('');
+
+    if (user) {
+      try {
+        await api.put(
+          `/lessons/course-progress/${encodeURIComponent(courseId)}/${encodeURIComponent(lessonId)}`,
+          { completed }
+        );
+      } catch (error) {
+        console.error('Lỗi khi lưu tiến độ bài học:', error);
+        setProgressError('Không thể lưu tiến độ bài học. Vui lòng thử lại.');
+        return;
       }
-    });
+    } else {
+      const savedIds = completed
+        ? [...completedLessonIds, lessonId]
+        : completedLessonIds.filter(id => id !== lessonId);
+      localStorage.setItem(`course_completed_${courseId}`, JSON.stringify(savedIds));
+    }
+
+    setCompletedLessonIds(prev => completed
+      ? [...new Set([...prev, lessonId])]
+      : prev.filter(id => id !== lessonId));
   };
 
   const handleNextLesson = () => {
@@ -326,7 +379,7 @@ export default function CourseClassroom() {
 
           <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
             <div className="text-right text-[11px] leading-tight">
-              <span className="font-bold text-emerald-600">{progressPercent}%</span>
+              <span className="font-bold text-emerald-600">{isProgressLoading ? '...' : `${progressPercent}%`}</span>
               <span className="text-slate-500 block text-[9px]">{completedCount}/{totalLessons} bài</span>
             </div>
             <div className="w-16 bg-slate-200 h-1.5 rounded-full overflow-hidden">
@@ -338,6 +391,12 @@ export default function CourseClassroom() {
           </div>
         </div>
       </header>
+
+      {progressError && (
+        <div role="alert" className="shrink-0 px-4 py-2 bg-amber-50 text-amber-800 text-xs font-semibold border-b border-amber-200">
+          {progressError}
+        </div>
+      )}
 
       {/* ───────────────────────────────────────────────────────────────────────── */}
       {/* MAIN CONTAINER: SIDEBAR + CONTENT WORKSPACE                               */}

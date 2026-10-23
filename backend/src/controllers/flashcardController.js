@@ -53,23 +53,30 @@ export const getMyFlashcards = async (req, res) => {
 // Cập nhật tiến độ học theo thuật toán SM-2
 export const reviewFlashcard = async (req, res) => {
   try {
-    const { word, quality } = req.body; // quality: 0 (Again) to 5 (Easy)
+    const { word, quality, vocabularyId } = req.body; // quality: 0 (Again) to 5 (Easy)
     const userId = req.user.id;
 
+    if (typeof word !== 'string' || !word.trim() || !Number.isInteger(quality) || quality < 0 || quality > 5) {
+      return res.status(400).json({ success: false, message: 'Từ vựng hoặc mức độ ôn tập không hợp lệ.' });
+    }
+
+    const masterWord = vocabularyId
+      ? await prisma.masterVocabulary.findUnique({ where: { id: vocabularyId } })
+      : await prisma.masterVocabulary.findFirst({ where: { word } });
+    if (vocabularyId && (!masterWord || masterWord.word.toLowerCase() !== word.trim().toLowerCase())) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy từ trong bộ từ vựng.' });
+    }
+
     let review = await prisma.flashcardReview.findFirst({
-      where: { userId, word }
+      where: { userId, word: word.trim() }
     });
 
     if (!review) {
       // Nếu chưa có trong danh sách ôn tập, tạo mới (từ MasterVocabulary)
-      const masterWord = await prisma.masterVocabulary.findFirst({
-        where: { word }
-      });
-
       review = await prisma.flashcardReview.create({
         data: {
           userId,
-          word,
+          word: word.trim(),
           phonetic: masterWord?.phonetic || "",
           meaning: masterWord?.meaning || "",
           definition: masterWord?.definition || "",
@@ -117,6 +124,25 @@ export const reviewFlashcard = async (req, res) => {
         nextReviewAt
       }
     });
+
+    if (masterWord) {
+      await prisma.vocabularyProgress.upsert({
+        where: {
+          userId_vocabularyId: {
+            userId,
+            vocabularyId: masterWord.id
+          }
+        },
+        update: {
+          reviewCount: { increment: 1 },
+          lastReviewedAt: new Date()
+        },
+        create: {
+          userId,
+          vocabularyId: masterWord.id
+        }
+      });
+    }
 
     res.json({ success: true, data: updatedReview });
   } catch (error) {

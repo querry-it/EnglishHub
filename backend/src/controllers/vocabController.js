@@ -282,6 +282,51 @@ export const getDeckDetail = async (req, res) => {
   }
 };
 
+export const getDeckProgress = async (req, res) => {
+  try {
+    const { id: deckId } = req.params;
+    const deck = await prisma.vocabDeck.findUnique({
+      where: { id: deckId },
+      select: { words: { select: { id: true, word: true } } }
+    });
+
+    if (!deck) return res.status(404).json({ success: false, message: 'Không tìm thấy bộ từ.' });
+
+    const wordIds = deck.words.map(word => word.id);
+    const words = deck.words.map(word => word.word);
+    const [reviewedWords, existingFlashcards] = await Promise.all([
+      wordIds.length
+        ? prisma.vocabularyProgress.findMany({
+          where: { userId: req.user.id, vocabularyId: { in: wordIds } },
+          select: { vocabularyId: true }
+        })
+        : [],
+      words.length
+        ? prisma.flashcardReview.findMany({
+          where: { userId: req.user.id, word: { in: words } },
+          select: { word: true }
+        })
+        : []
+    ]);
+    const reviewedWordIds = new Set(reviewedWords.map(word => word.vocabularyId));
+    const reviewedWordsSet = new Set(existingFlashcards.map(card => card.word.toLowerCase()));
+    deck.words.forEach(word => {
+      if (reviewedWordsSet.has(word.word.toLowerCase())) reviewedWordIds.add(word.id);
+    });
+
+    res.json({
+      success: true,
+      total: wordIds.length,
+      reviewedCount: reviewedWordIds.size,
+      percent: wordIds.length ? Math.round((reviewedWordIds.size / wordIds.length) * 100) : 0,
+      reviewedWordIds: [...reviewedWordIds]
+    });
+  } catch (error) {
+    console.error('Lỗi khi tải tiến độ từ vựng:', error);
+    res.status(500).json({ success: false, message: 'Không thể tải tiến độ từ vựng.' });
+  }
+};
+
 export const deleteDeck = async (req, res) => {
   try {
     const { id } = req.params;

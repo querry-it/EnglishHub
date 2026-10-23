@@ -30,6 +30,8 @@ model User {
   feedbacksGiven    SubmissionFeedback[] @relation("InstructorFeedbacks")
   submissions       Submission[]
   progress          UserProgress[]
+  courseLessonProgress CourseLessonProgress[]
+  vocabularyProgress VocabularyProgress[]
   expLogs           ExpLog[]
   auditLogs         AuditLog[]
 
@@ -209,6 +211,35 @@ model UserProgress {
   @@map("user_progress")
 }
 
+model CourseLessonProgress {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  courseKey String   @map("course_key") @db.VarChar(255)
+  lessonKey String   @map("lesson_key") @db.VarChar(255)
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseKey, lessonKey])
+  @@index([userId, courseKey, completed])
+  @@map("course_lesson_progress")
+}
+
+model VocabularyProgress {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  vocabularyId   String           @map("vocabulary_id") @db.Uuid
+  reviewCount    Int              @default(1) @map("review_count")
+  firstReviewedAt DateTime        @default(now()) @map("first_reviewed_at") @db.Timestamptz(6)
+  lastReviewedAt DateTime         @default(now()) @map("last_reviewed_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabulary     MasterVocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vocabularyId])
+  @@index([userId, lastReviewedAt])
+  @@map("vocabulary_progress")
+}
+
 enum Role {
   STUDENT
   INSTRUCTOR
@@ -267,6 +298,7 @@ model MasterVocabulary {
   audioUrl   String?   @map("audio_url") @db.VarChar(500)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   deck       VocabDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  progress   VocabularyProgress[]
 
   @@map("master_vocabulary")
 }
