@@ -2,6 +2,85 @@
 @tailwind components;
 @tailwind utilities;
 
+.loading-bird {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.loading-bird__svg {
+  overflow: visible;
+}
+
+.loading-bird__left-wing {
+  transform-box: view-box;
+  transform-origin: 91px 151px;
+  animation: loading-bird-left-flap 0.38s ease-in-out infinite alternate;
+}
+
+.loading-bird__right-wing {
+  transform-box: view-box;
+  transform-origin: 229px 151px;
+  animation: loading-bird-right-flap 0.38s ease-in-out infinite alternate;
+}
+
+.loading-bird__body {
+  transform-box: view-box;
+  transform-origin: 160px 170px;
+  animation: loading-bird-bob 0.38s ease-in-out infinite alternate;
+}
+
+.loading-bird__feet {
+  transform-box: view-box;
+  transform-origin: 160px 256px;
+  animation: loading-bird-feet 0.38s ease-in-out infinite alternate;
+}
+
+.loading-bird__motion {
+  animation: loading-bird-motion 0.38s ease-in-out infinite alternate;
+}
+
+@keyframes loading-bird-left-flap {
+  from { transform: rotate(-5deg) scaleY(1); }
+  to { transform: rotate(-34deg) scaleY(.88); }
+}
+
+@keyframes loading-bird-right-flap {
+  from { transform: rotate(5deg) scaleY(1); }
+  to { transform: rotate(34deg) scaleY(.88); }
+}
+
+@keyframes loading-bird-bob {
+  from { transform: translateY(2px); }
+  to { transform: translateY(-5px); }
+}
+
+@keyframes loading-bird-feet {
+  from { transform: translateY(0); }
+  to { transform: translateY(-4px); }
+}
+
+@keyframes loading-bird-motion {
+  from { opacity: .45; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-bird__left-wing,
+  .loading-bird__right-wing,
+  .loading-bird__body,
+  .loading-bird__feet,
+  .loading-bird__motion {
+    animation: none;
+  }
+}
+
 :root {
   --font-heading: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

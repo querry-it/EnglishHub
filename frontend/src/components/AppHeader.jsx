@@ -268,7 +268,7 @@ export default function AppHeader({ isPublic = false }) {
           {/* 1. LEFT SECTION: Mascot Logo + Navigation Links */}
           <div className="flex items-center gap-8 lg:gap-14">
             <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-              <AppMascot className="w-8 h-8 group-hover:scale-105 transition-transform" />
+              <AppMascot className="w-10 h-10 group-hover:scale-105 transition-transform" />
               <span className="font-extrabold text-xl text-slate-800 dark:text-white tracking-tight">
                 EnglishHub
               </span>
@@ -418,4 +418,3 @@ export default function AppHeader({ isPublic = false }) {
     </header>
   );
 }
-

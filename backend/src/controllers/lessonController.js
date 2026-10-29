@@ -105,7 +105,7 @@ export const createLesson = async (req, res) => {
       data: {
         moduleId: module.id,
         title,
-        videoUrl: videoId,
+        videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
         duration: finalDuration,
         lessonType: lessonType === 'Dictation' ? 'PRACTICE' : 'SPEAKING',
         contentText: JSON.stringify(finalTranscript),
@@ -356,7 +356,7 @@ export const updateLesson = async (req, res) => {
       where: { id: id },
       data: {
         title,
-        videoUrl: videoId,
+        videoUrl: videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined,
         duration: req.body.duration,
         lessonType: lessonType === 'Dictation' ? 'PRACTICE' : (lessonType === 'Shadowing' ? 'SPEAKING' : undefined),
         contentText: transcript, // Frontend đã stringify nếu cần
@@ -465,5 +465,83 @@ export const getUserProgress = async (req, res) => {
   } catch (error) {
     console.error('Lỗi getUserProgress:', error);
     res.status(500).json({ success: false, message: 'Lỗi khi tải tiến độ học tập' });
+  }
+};
+
+export const getCourseLessonProgress = async (req, res) => {
+  try {
+    const courseKey = req.params.courseKey?.trim();
+    if (!courseKey) {
+      return res.status(400).json({ success: false, message: 'Thiếu mã khóa học.' });
+    }
+
+    const progress = await prisma.courseLessonProgress.findMany({
+      where: { userId: req.user.id, courseKey, completed: true },
+      select: { lessonKey: true }
+    });
+
+    res.json({
+      success: true,
+      completedLessonIds: progress.map(item => item.lessonKey)
+    });
+  } catch (error) {
+    console.error('Lỗi khi tải tiến độ khóa học:', error);
+    res.status(500).json({ success: false, message: 'Không thể tải tiến độ khóa học.' });
+  }
+};
+
+export const setCourseLessonProgress = async (req, res) => {
+  try {
+    const courseKey = req.params.courseKey?.trim();
+    const lessonKey = req.params.lessonKey?.trim();
+    const { completed } = req.body;
+
+    if (!courseKey || !lessonKey || typeof completed !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'Thông tin tiến độ bài học không hợp lệ.' });
+    }
+
+    const progress = await prisma.courseLessonProgress.upsert({
+      where: {
+        userId_courseKey_lessonKey: {
+          userId: req.user.id,
+          courseKey,
+          lessonKey
+        }
+      },
+      update: { completed },
+      create: {
+        userId: req.user.id,
+        courseKey,
+        lessonKey,
+        completed
+      }
+    });
+
+    res.json({ success: true, completed: progress.completed });
+  } catch (error) {
+    console.error('Lỗi khi lưu tiến độ bài học:', error);
+    res.status(500).json({ success: false, message: 'Không thể lưu tiến độ bài học.' });
+  }
+};
+
+export const extractTranscript = async (req, res) => {
+  try {
+    const { videoUrl } = req.body;
+    if (!videoUrl) return res.status(400).json({ success: false, message: 'Thiếu Link YouTube' });
+
+    const videoId = extractVideoId(videoUrl);
+    const result = await getYoutubeTranscript(videoId);
+
+    if (result && result.transcript && result.transcript.length > 0) {
+      return res.json({
+        success: true,
+        transcript: result.transcript,
+        duration: result.duration
+      });
+    }
+    res.status(404).json({ success: false, message: 'Không tìm thấy phụ đề cho video này!' });
+  } catch (error) {
+    console.error('Lỗi extractTranscript:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

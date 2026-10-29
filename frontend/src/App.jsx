@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import AppHeader from './components/AppHeader';
 import Footer from './components/Footer';
 import AppLayout from './components/AppLayout';
+import LoadingBird from './components/LoadingBird';
 
 import Home from './pages/home/Home';
 import Login from './pages/home/Login';
@@ -65,7 +66,7 @@ function AppContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0b1120]">
-        <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+        <LoadingBird label="Đang kiểm tra phiên đăng nhập..." size={180} />
       </div>
     );
   }
@@ -114,8 +115,10 @@ function AppContent() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         {/* Learning Features (Mọi người dùng đều có thể truy cập để học) */}
-        <Route path="/listening" element={<Listening />} />
-        <Route path="/dictation" element={<Listening />} />
+        <Route path="/topics" element={<Listening pageMode="topics" />} />
+        <Route path="/listening" element={<Listening pageMode="dictation" />} />
+        <Route path="/dictation" element={<Listening pageMode="dictation" />} />
+        <Route path="/shadowing" element={<Listening pageMode="shadowing" />} />
         <Route path="/pronunciation" element={<Pronunciation />} />
         <Route path="/vocabulary" element={<Vocabulary />} />
         <Route path="/speaking" element={<Speaking />} />

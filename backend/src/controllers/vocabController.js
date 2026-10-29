@@ -185,34 +185,46 @@ export const commitVocabImport = async (req, res) => {
   try {
     const { deckTitle, category, words } = req.body;
 
-    const deck = await prisma.vocabDeck.create({
-      data: {
-        title: deckTitle,
-        category: category,
-        description: `Bộ từ vựng ${deckTitle} - Thể loại ${category || 'General'}`,
-        thumbnail: words[0]?.imageUrl || `https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&q=80`
-      }
-    });
+    if (!deckTitle?.trim() || !Array.isArray(words) || words.length === 0) {
+      return res.status(400).json({ message: 'Tên bộ từ và danh sách từ vựng là bắt buộc.' });
+    }
 
-    const importPromises = words.map(async (w) => {
-      const actualAudio = w.audioUrl || await getAudioUrl(w.word);
-      return prisma.masterVocabulary.create({
+    if (words.length > 200) {
+      return res.status(400).json({ message: 'Mỗi lần chỉ có thể nhập tối đa 200 từ.' });
+    }
+
+    if (words.some(word => !word?.word?.trim() || !word?.meaning?.trim())) {
+      return res.status(400).json({ message: 'Mỗi từ vựng cần có từ và nghĩa.' });
+    }
+
+    const preparedWords = await Promise.all(words.map(async word => ({
+      word: word.word.trim(),
+      phonetic: word.phonetic || null,
+      meaning: word.meaning,
+      definition: word.definition || null,
+      example: word.example || null,
+      imageUrl: word.imageUrl || null,
+      audioUrl: word.audioUrl || await getAudioUrl(word.word)
+    })));
+
+    const deckId = await prisma.$transaction(async (tx) => {
+      const deck = await tx.vocabDeck.create({
         data: {
-          deckId: deck.id,
-          word: w.word,
-          phonetic: w.phonetic,
-          meaning: w.meaning,
-          definition: w.definition,
-          example: w.example,
-          imageUrl: w.imageUrl,
-          audioUrl: actualAudio
+          title: deckTitle.trim(),
+          category: category || null,
+          description: `Bộ từ vựng ${deckTitle.trim()} - Thể loại ${category || 'General'}`,
+          thumbnail: words[0]?.imageUrl || 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&q=80'
         }
       });
+
+      await tx.masterVocabulary.createMany({
+        data: preparedWords.map(word => ({ ...word, deckId: deck.id }))
+      });
+
+      return deck.id;
     });
 
-    await Promise.all(importPromises);
-
-    res.json({ success: true, message: `Đã nhập thành công ${words.length} từ vào bộ ${deckTitle}!`, deckId: deck.id });
+    res.json({ success: true, message: `Đã nhập thành công ${words.length} từ vào bộ ${deckTitle}!`, deckId });
   } catch (error) {
     console.error("Lỗi Commit Import:", error);
     res.status(500).json({ message: "Lỗi khi lưu dữ liệu vào Database", error: error.message });
@@ -267,6 +279,108 @@ export const getDeckDetail = async (req, res) => {
     res.json(deck);
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi lấy chi tiết bộ từ", error: error.message });
+  }
+};
+
+export const getDeckProgress = async (req, res) => {
+  try {
+    const { id: deckId } = req.params;
+    const deck = await prisma.vocabDeck.findUnique({
+      where: { id: deckId },
+      select: { words: { select: { id: true, word: true } } }
+    });
+
+    if (!deck) return res.status(404).json({ success: false, message: 'Không tìm thấy bộ từ.' });
+
+    const wordIds = deck.words.map(word => word.id);
+    const words = deck.words.map(word => word.word);
+    const [progress, existingFlashcards] = await Promise.all([
+      wordIds.length
+        ? prisma.vocabularyProgress.findMany({
+          where: { userId: req.user.id, vocabularyId: { in: wordIds } },
+          select: { vocabularyId: true, isNew: true, isCorrect: true }
+        })
+        : [],
+      words.length
+        ? prisma.flashcardReview.findMany({
+          where: { userId: req.user.id, word: { in: words } },
+          select: { word: true }
+        })
+        : []
+    ]);
+    const learningWordIds = progress.filter(word => !word.isNew && !word.isCorrect).map(word => word.vocabularyId);
+    const masteredWordIds = progress.filter(word => word.isCorrect).map(word => word.vocabularyId);
+    const newWordIds = progress.filter(word => word.isNew).map(word => word.vocabularyId);
+    const addedWords = new Set(existingFlashcards.map(card => card.word.toLowerCase()));
+    const addedWordIds = deck.words
+      .filter(word => addedWords.has(word.word.toLowerCase()))
+      .map(word => word.id);
+    res.json({
+      success: true,
+      total: wordIds.length,
+      reviewedCount: masteredWordIds.length,
+      percent: wordIds.length ? Math.round((masteredWordIds.length / wordIds.length) * 100) : 0,
+      reviewedWordIds: masteredWordIds,
+      newWordIds,
+      learningWordIds,
+      masteredWordIds,
+      addedWordIds
+    });
+  } catch (error) {
+    console.error('Lỗi khi tải tiến độ từ vựng:', error);
+    res.status(500).json({ success: false, message: 'Không thể tải tiến độ từ vựng.' });
+  }
+};
+
+export const recordDeckAnswer = async (req, res) => {
+  try {
+    const { id: deckId, wordId } = req.params;
+    const { status } = req.body;
+
+    if (!['new', 'learning', 'mastered'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Kết quả trả lời không hợp lệ.' });
+    }
+
+    const vocabulary = await prisma.masterVocabulary.findFirst({
+      where: { id: wordId, deckId },
+      select: { id: true }
+    });
+
+    if (!vocabulary) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy từ trong bộ từ vựng.' });
+    }
+
+    const progress = await prisma.vocabularyProgress.upsert({
+      where: {
+        userId_vocabularyId: {
+          userId: req.user.id,
+          vocabularyId: vocabulary.id
+        }
+      },
+      update: {
+        isNew: status === 'new',
+        isCorrect: status === 'mastered',
+        reviewCount: { increment: 1 },
+        lastReviewedAt: new Date()
+      },
+      create: {
+        userId: req.user.id,
+        vocabularyId: vocabulary.id,
+        isNew: status === 'new',
+        isCorrect: status === 'mastered'
+      },
+      select: {
+        vocabularyId: true,
+        isNew: true,
+        isCorrect: true,
+        reviewCount: true
+      }
+    });
+
+    res.json({ success: true, progress });
+  } catch (error) {
+    console.error('Lỗi khi lưu kết quả ôn từ vựng:', error);
+    res.status(500).json({ success: false, message: 'Không thể lưu kết quả ôn từ vựng.' });
   }
 };
 

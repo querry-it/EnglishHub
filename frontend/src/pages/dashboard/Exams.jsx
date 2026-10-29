@@ -3,10 +3,11 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ClipboardList, Clock, Award, CheckCircle2, FileText, Sparkles, 
   BookOpen, ChevronRight, Headphones, ArrowRight, Trophy, TrendingUp,
-  RotateCcw, Eye, ShieldCheck, Users, GraduationCap, Loader2, Volume2, 
+  RotateCcw, Eye, ShieldCheck, Users, GraduationCap, Volume2,
   AlertCircle, RefreshCw, PenTool, Mic, Square, Play
 } from 'lucide-react';
 import { fetchToeicExamData, fetchIeltsExamData } from '../../api/examService';
+import LoadingBird from '../../components/LoadingBird';
 
 export default function Exams() {
   const [searchParams] = useSearchParams();
@@ -306,11 +307,8 @@ export default function Exams() {
 
           {/* Loading State */}
           {loadingExam && (
-            <div className="p-16 bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 text-center space-y-4">
-              <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mx-auto" />
-              <p className="text-sm font-extrabold text-slate-700 dark:text-slate-200">
-                Đang móc dữ liệu đề thi trực tiếp từ API GitHub / Open Dataset...
-              </p>
+            <div className="p-10 bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 flex flex-col items-center gap-2">
+              <LoadingBird label="Đang tải dữ liệu đề thi..." size={160} />
               <p className="text-xs text-slate-400">Vui lòng chờ trong giây lát.</p>
             </div>
           )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, Gamepad2, HelpCircle, Trophy, Sparkles, Plus, Search, 
   FolderPlus, Crown, Award, CheckCircle2, Zap, TrendingUp, Target, 
@@ -8,8 +8,10 @@ import {
   VolumeX, Sliders, CheckSquare, RefreshCw
 } from 'lucide-react';
 import AppMascot from '../../components/AppMascot';
+import LoadingBird from '../../components/LoadingBird';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
 import axios from 'axios';
 
 export default function Vocabulary() {
@@ -17,6 +19,18 @@ export default function Vocabulary() {
   const { user , openProModal } = useAuth();
   const [activeDeck, setActiveDeck] = useState(null);
   const [deckDetail, setDeckDetail] = useState(null);
+  const audioRef = useRef(null);
+  const [newWordIds, setNewWordIds] = useState([]);
+  const [learningWordIds, setLearningWordIds] = useState([]);
+  const [masteredWordIds, setMasteredWordIds] = useState([]);
+  const [addedWordIds, setAddedWordIds] = useState([]);
+  const [isAddingWord, setIsAddingWord] = useState(false);
+  const [isSavingAnswer, setIsSavingAnswer] = useState(false);
+  const [isVocabularyProgressLoading, setIsVocabularyProgressLoading] = useState(false);
+  const [vocabularyProgressError, setVocabularyProgressError] = useState('');
+  const [isDeckDetailLoading, setIsDeckDetailLoading] = useState(false);
+  const [deckDetailError, setDeckDetailError] = useState('');
+  const [deckDetailReload, setDeckDetailReload] = useState(0);
   const [selectedTag, setSelectedTag] = useState('Tất cả');
   const [decks, setDecks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,20 +94,66 @@ export default function Vocabulary() {
   // Fetch Deck Details when activeDeck changes
   useEffect(() => {
     if (activeDeck && user) {
+      let cancelled = false;
+      setDeckDetail(null);
+      setDeckDetailError('');
+      setIsDeckDetailLoading(true);
+      setNewWordIds([]);
+      setLearningWordIds([]);
+      setMasteredWordIds([]);
+      setAddedWordIds([]);
+      setIsVocabularyProgressLoading(true);
+      setVocabularyProgressError('');
+
       const fetchDetail = async () => {
         try {
           const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/vocabulary/decks/${activeDeck.id}`);
-          setDeckDetail(response.data);
-          setCardIndex(0);
+          if (!cancelled) {
+            setDeckDetail(response.data);
+            setCardIndex(0);
+          }
+
+          try {
+            const progressResponse = await api.get(`/vocabulary/decks/${activeDeck.id}/progress`);
+            if (!cancelled) {
+              setNewWordIds(progressResponse.data.newWordIds || []);
+              setLearningWordIds(progressResponse.data.learningWordIds || []);
+              setMasteredWordIds(progressResponse.data.masteredWordIds || []);
+              setAddedWordIds(progressResponse.data.addedWordIds || []);
+            }
+          } catch (error) {
+            console.error('Error fetching vocabulary progress:', error);
+            if (!cancelled) setVocabularyProgressError('Không thể tải tiến độ ôn từ vựng.');
+          } finally {
+            if (!cancelled) setIsVocabularyProgressLoading(false);
+          }
         } catch (error) {
           console.error("Error fetching deck detail:", error);
+          if (!cancelled) {
+            setDeckDetailError('Không thể tải bộ từ vựng. Vui lòng thử lại.');
+            setIsVocabularyProgressLoading(false);
+          }
+        } finally {
+          if (!cancelled) setIsDeckDetailLoading(false);
         }
       };
       fetchDetail();
+
+      return () => {
+        cancelled = true;
+      };
     } else {
       setDeckDetail(null);
+      setIsDeckDetailLoading(false);
+      setDeckDetailError('');
+      setNewWordIds([]);
+      setLearningWordIds([]);
+      setMasteredWordIds([]);
+      setAddedWordIds([]);
+      setIsVocabularyProgressLoading(false);
+      setVocabularyProgressError('');
     }
-  }, [activeDeck, user]);
+  }, [activeDeck, user, deckDetailReload]);
 
   const filterTags = [
     'Tất cả', 'General', 'TOEIC', 'IELTS', 'Oxford', 'Communication', 'Business', 'Academic'
@@ -131,6 +191,7 @@ export default function Vocabulary() {
         image: w.imageUrl || 'https://picsum.photos/300/200',
         ipaUS: w.phonetic,
         ipaUK: w.phonetic,
+        audioUrl: w.audioUrl,
         quizOptions,
         quizReverseOptions
       };
@@ -138,7 +199,24 @@ export default function Vocabulary() {
   };
 
   const currentCards = deckDetail ? processWords(deckDetail.words) : [];
-  const activeCard = currentCards.length > 0 ? currentCards[cardIndex % currentCards.length] : null;
+  const reviewedCount = currentCards.filter(card => masteredWordIds.includes(card.id)).length;
+  const learningCount = currentCards.filter(card => learningWordIds.includes(card.id)).length;
+  const newCount = currentCards.filter(card => newWordIds.includes(card.id)).length;
+  const vocabularyProgressPercent = currentCards.length
+    ? Math.round((reviewedCount / currentCards.length) * 100)
+    : 0;
+  const filteredCards = currentCards.filter(card => {
+    if (selectedSubTopicIndex === 1) return newWordIds.includes(card.id);
+    if (selectedSubTopicIndex === 2) return learningWordIds.includes(card.id);
+    if (selectedSubTopicIndex === 3) return masteredWordIds.includes(card.id);
+    return true;
+  });
+  const activeCard = filteredCards.length
+    ? filteredCards[cardIndex % filteredCards.length]
+    : null;
+  const isActiveCardStudied = activeCard
+    ? learningWordIds.includes(activeCard.id) || masteredWordIds.includes(activeCard.id)
+    : false;
 
   // Feedback form state
   const [feedbackMsg, setFeedbackMsg] = useState('');
@@ -149,58 +227,167 @@ export default function Vocabulary() {
   const [newDeckDesc, setNewDeckDesc] = useState('');
   const [userDecks, setUserDecks] = useState([]);
 
-  // SM-2 Buttons
-  const handleSM2Review = async (quality) => {
-    if (!activeCard || !user) {
-      setCardIndex((prev) => (prev + 1) % currentCards.length);
-      setIsFlipped(false);
-      return;
-    }
+  const recordVocabularyStatus = async (card, status) => {
+    if (!activeDeck || !user) return false;
 
+    setIsSavingAnswer(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/flashcards/review`, {
-        word: activeCard.englishWord,
-        quality: quality
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setIsFlipped(false);
-      setCardIndex((prev) => (prev + 1) % currentCards.length);
-      setReviewCount((prev) => prev + 1);
+      await api.put(`/vocabulary/decks/${activeDeck.id}/words/${card.id}/progress`, { status });
+      setNewWordIds(previous => status === 'new'
+        ? (previous.includes(card.id) ? previous : [...previous, card.id])
+        : previous.filter(id => id !== card.id));
+      if (status === 'mastered') {
+        setLearningWordIds(previous => previous.filter(id => id !== card.id));
+        setMasteredWordIds(previous => previous.includes(card.id) ? previous : [...previous, card.id]);
+      } else if (status === 'learning') {
+        setMasteredWordIds(previous => previous.filter(id => id !== card.id));
+        setLearningWordIds(previous => previous.includes(card.id) ? previous : [...previous, card.id]);
+      } else {
+        setLearningWordIds(previous => previous.filter(id => id !== card.id));
+        setMasteredWordIds(previous => previous.filter(id => id !== card.id));
+      }
+      setVocabularyProgressError('');
+      return true;
     } catch (error) {
-      console.error("SM-2 API Error:", error);
-      // Fallback transition
+      console.error('Lỗi khi lưu kết quả ôn từ vựng:', error);
+      setVocabularyProgressError('Không thể lưu tiến độ ôn từ. Vui lòng thử lại.');
+      return false;
+    } finally {
+      setIsSavingAnswer(false);
+    }
+  };
+
+  const handleFlashcardAnswer = async (isCorrect) => {
+    if (!activeCard) return;
+    const status = isCorrect ? 'mastered' : 'learning';
+    if (await recordVocabularyStatus(activeCard, status)) {
       setIsFlipped(false);
-      setCardIndex((prev) => (prev + 1) % currentCards.length);
+      const remainsInFilter = selectedSubTopicIndex === 0
+        || (selectedSubTopicIndex === 2 && !isCorrect)
+        || (selectedSubTopicIndex === 3 && isCorrect);
+      if (remainsInFilter) {
+        setCardIndex(previous => Math.min(previous + 1, Math.max(filteredCards.length - 1, 0)));
+      }
+      setReviewCount(previous => previous + 1);
+    }
+  };
+
+  const handleMarkCurrentAsNew = async () => {
+    if (!activeCard || newWordIds.includes(activeCard.id)) return;
+    await recordVocabularyStatus(activeCard, 'new');
+  };
+
+  const handleNextCard = () => {
+    if (!isActiveCardStudied || cardIndex >= filteredCards.length - 1) return;
+    setCardIndex(previous => Math.min(previous + 1, filteredCards.length - 1));
+    setIsFlipped(false);
+    setFeedbackStatus(null);
+    setSelectedQuizOption(null);
+    setInputGuessText('');
+    setShowHint(false);
+  };
+
+  const handlePreviousCard = () => {
+    if (cardIndex <= 0) return;
+    setCardIndex(previous => Math.max(previous - 1, 0));
+    setIsFlipped(false);
+    setFeedbackStatus(null);
+    setSelectedQuizOption(null);
+    setInputGuessText('');
+    setShowHint(false);
+  };
+
+  const addActiveWordToMyVocabulary = async () => {
+    if (!activeCard || addedWordIds.includes(activeCard.id) || isAddingWord) return;
+
+    setIsAddingWord(true);
+    try {
+      await api.post('/flashcards', {
+        word: activeCard.englishWord,
+        phonetic: activeCard.ipaUS,
+        meaning: activeCard.vietnameseWord,
+        definition: activeCard.englishDef,
+        example: activeCard.exampleEN,
+        imageUrl: activeCard.image,
+        audioUrl: activeCard.audioUrl
+      });
+      setAddedWordIds(previous => previous.includes(activeCard.id) ? previous : [...previous, activeCard.id]);
+      setVocabularyProgressError('');
+    } catch (error) {
+      console.error('Lỗi khi thêm từ vào bộ từ vựng cá nhân:', error);
+      setVocabularyProgressError(error.response?.data?.message || 'Không thể thêm từ vào bộ từ vựng cá nhân.');
+    } finally {
+      setIsAddingWord(false);
     }
   };
 
   const subTopics = [
-    { id: 1, name: 'Tổng quan', count: deckDetail?.words?.length || 0, totalCards: deckDetail?.words?.length || 0, icon: '📊', progress: '0%' },
-    { id: 2, name: 'Từ mới', count: deckDetail?.words?.length || 0, totalCards: deckDetail?.words?.length || 0, icon: '🆕', progress: '0%' },
-    { id: 3, name: 'Đang ôn', count: '0 từ', totalCards: 0, icon: '🔄', progress: '0%' },
-    { id: 4, name: 'Đã thuộc', count: '0 từ', totalCards: 0, icon: '✅', progress: '0%' },
+    { id: 1, name: 'Tất cả', count: currentCards.length, icon: '📊' },
+    { id: 2, name: 'Từ mới', count: newCount, icon: '🆕' },
+    { id: 3, name: 'Đang ôn', count: learningCount, icon: '🔄' },
+    { id: 4, name: 'Đã ôn', count: reviewedCount, icon: '✅' },
   ];
 
-  const speakText = (text, lang = 'en-US') => {
-    if (!window.speechSynthesis) return;
+  const speakText = (text, lang = 'en-US', audioUrl = '') => {
+    const normalizedText = typeof text === 'string' ? text.trim() : '';
+    if (!normalizedText) return;
+
+    const speakWithSynthesis = () => {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        console.error('Speech synthesis is not supported in this browser.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(normalizedText);
+      utterance.lang = lang;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    if (audioUrl) {
+      window.speechSynthesis?.cancel();
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      const fallbackToSynthesis = () => {
+        if (audioRef.current !== audio) return;
+        audioRef.current = null;
+        speakWithSynthesis();
+      };
+
+      audio.onended = () => {
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+      audio.onerror = fallbackToSynthesis;
+      audio.play().catch(fallbackToSynthesis);
+      return;
+    }
+
+    if (!('speechSynthesis' in window)) {
+      console.error('Speech synthesis is not supported in this browser.');
+      return;
+    }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    window.speechSynthesis.speak(utterance);
+    speakWithSynthesis();
   };
 
-  const handleCheckAnswer = () => {
+  const handleCheckAnswer = async () => {
     if (!inputGuessText.trim() || !activeCard) return;
-    if (inputGuessText.trim().toLowerCase() === activeCard.englishWord.toLowerCase()) {
+    const isCorrect = inputGuessText.trim().toLowerCase() === activeCard.englishWord.toLowerCase();
+    if (!await recordVocabularyStatus(activeCard, isCorrect ? 'mastered' : 'learning')) return;
+
+    if (isCorrect) {
       setFeedbackStatus('success');
       setTimeout(() => {
         setFeedbackStatus(null);
         setInputGuessText('');
         setShowHint(false);
-        setCardIndex((prev) => (prev + 1) % currentCards.length);
+        if (selectedSubTopicIndex === 0 || selectedSubTopicIndex === 3) {
+          setCardIndex(previous => Math.min(previous + 1, Math.max(filteredCards.length - 1, 0)));
+        }
         setReviewCount((prev) => prev + 1);
       }, 1200);
     } else {
@@ -208,26 +395,32 @@ export default function Vocabulary() {
     }
   };
 
-  const handleDontKnow = () => {
+  const handleDontKnow = async () => {
     if (!activeCard) return;
+    if (!await recordVocabularyStatus(activeCard, 'learning')) return;
     setFeedbackStatus('revealed');
     setInputGuessText(activeCard.englishWord);
     setTimeout(() => {
       setFeedbackStatus(null);
       setInputGuessText('');
       setShowHint(false);
-      setCardIndex((prev) => (prev + 1) % currentCards.length);
+      if (selectedSubTopicIndex === 0 || selectedSubTopicIndex === 2) {
+        setCardIndex(previous => Math.min(previous + 1, Math.max(filteredCards.length - 1, 0)));
+      }
     }, 1800);
   };
 
-  const handleSelectQuizOption = (option) => {
+  const handleSelectQuizOption = async (option) => {
+    if (!activeCard || !await recordVocabularyStatus(activeCard, option.isCorrect ? 'mastered' : 'learning')) return;
     setSelectedQuizOption(option.key);
     if (option.isCorrect) {
       setFeedbackStatus('success');
       setTimeout(() => {
         setFeedbackStatus(null);
         setSelectedQuizOption(null);
-        setCardIndex((prev) => (prev + 1) % currentCards.length);
+        if (selectedSubTopicIndex === 0 || selectedSubTopicIndex === 3) {
+          setCardIndex(previous => Math.min(previous + 1, Math.max(filteredCards.length - 1, 0)));
+        }
         setReviewCount((prev) => prev + 1);
       }, 1200);
     } else {
@@ -235,6 +428,9 @@ export default function Vocabulary() {
       setTimeout(() => {
         setSelectedQuizOption(null);
         setFeedbackStatus(null);
+        if (selectedSubTopicIndex === 0 || selectedSubTopicIndex === 2) {
+          setCardIndex(previous => Math.min(previous + 1, Math.max(filteredCards.length - 1, 0)));
+        }
       }, 1500);
     }
   };
@@ -252,6 +448,7 @@ export default function Vocabulary() {
       onClick={() => {
         setActiveDeck(deck); 
         setCardIndex(0); 
+        setSelectedSubTopicIndex(0);
         setIsFlipped(false); 
         setFeedbackStatus(null); 
         setInputGuessText(''); 
@@ -400,6 +597,30 @@ export default function Vocabulary() {
             </div>
 
           </div>
+        ) : isDeckDetailLoading || (!deckDetail && !deckDetailError) ? (
+          <div className="max-w-7xl mx-auto px-4 py-16 text-center text-slate-500 font-bold">
+            Đang tải bộ từ vựng...
+          </div>
+        ) : deckDetailError ? (
+          <div className="max-w-7xl mx-auto px-4 py-16 flex flex-col items-center gap-4 text-center">
+            <p className="text-slate-600 dark:text-slate-300 font-bold">{deckDetailError}</p>
+            <button
+              onClick={() => setDeckDetailReload(value => value + 1)}
+              className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold"
+            >
+              Thử tải lại
+            </button>
+          </div>
+        ) : !currentCards.length ? (
+          <div className="max-w-7xl mx-auto px-4 py-16 text-center text-slate-500 font-bold">
+            <p>Bộ từ vựng này chưa có thẻ nào.</p>
+            <button
+              onClick={() => setActiveDeck(null)}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white"
+            >
+              <ArrowLeft className="h-4 w-4" /> Quay lại danh sách
+            </button>
+          </div>
         ) : (
           /* ================= INTERACTIVE STUDY WORKSPACE (MATCHING ALL SCREENSHOTS) ================= */
           <div className="max-w-7xl mx-auto px-2 sm:px-4 space-y-5 animate-fade-in">
@@ -503,16 +724,23 @@ export default function Vocabulary() {
           {/* ================= 2. PROGRESS BANNER BAR ================= */}
           <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
             <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              <span>TIẾN ĐỘ - {subTopics[selectedSubTopicIndex].name}</span>
-              <span className="font-mono">{cardIndex + 1} / {subTopics[selectedSubTopicIndex].totalCards} THẺ</span>
+              <span>TIẾN ĐỘ ÔN TỪ</span>
+              <span className="font-mono">
+                {isVocabularyProgressLoading ? 'ĐANG TẢI...' : `${reviewedCount} / ${currentCards.length} TỪ ĐÃ ÔN (${vocabularyProgressPercent}%)`}
+              </span>
             </div>
 
             <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
               <div 
                 className="bg-indigo-600 h-full transition-all duration-300 rounded-full"
-                style={{ width: `${((cardIndex + 1) / subTopics[selectedSubTopicIndex].totalCards) * 100}%` }}
+                style={{ width: `${vocabularyProgressPercent}%` }}
               />
             </div>
+            {vocabularyProgressError && (
+              <p role="alert" className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                {vocabularyProgressError}
+              </p>
+            )}
           </div>
 
           {/* ================= 3. MAIN 2-COLUMN STUDY STUDIO CONTAINER ================= */}
@@ -530,7 +758,14 @@ export default function Vocabulary() {
                   return (
                     <div
                       key={topic.id}
-                      onClick={() => { setSelectedSubTopicIndex(idx); setCardIndex(0); setFeedbackStatus(null); setSelectedQuizOption(null); }}
+                      onClick={() => {
+                        setSelectedSubTopicIndex(idx);
+                        setCardIndex(0);
+                        setIsFlipped(false);
+                        setFeedbackStatus(null);
+                        setSelectedQuizOption(null);
+                        setInputGuessText('');
+                      }}
                       className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
                           ? 'bg-[#1E2540] text-white border-[#1E2540] shadow-md'
@@ -543,21 +778,12 @@ export default function Vocabulary() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-extrabold text-xs truncate">{topic.name}</p>
-                          <span className={`text-[10px] font-semibold ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
-                            {topic.count}
-                          </span>
                         </div>
                       </div>
 
-                      {topic.progress ? (
-                        <span className="px-2 py-0.5 rounded-lg bg-indigo-500 text-white font-black text-[10px] shrink-0">
-                          {topic.progress}
-                        </span>
-                      ) : (
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                          —
-                        </span>
-                      )}
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        {topic.count}
+                      </span>
                     </div>
                   );
                 })}
@@ -566,7 +792,37 @@ export default function Vocabulary() {
 
             {/* RIGHT COLUMN: MAIN INTERACTIVE CARD WORKSPACE (8 cols) */}
             <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-xs relative space-y-6">
-              
+              {activeCard ? (
+                <>
+              <div className="flex flex-wrap justify-end gap-2">
+                {(selectedSubTopicIndex === 0 || selectedSubTopicIndex === 1) && (
+                  <button
+                    type="button"
+                    onClick={addActiveWordToMyVocabulary}
+                    disabled={isAddingWord || addedWordIds.includes(activeCard.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-colors ${
+                      addedWordIds.includes(activeCard.id)
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60'
+                    }`}
+                  >
+                    {addedWordIds.includes(activeCard.id) ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {addedWordIds.includes(activeCard.id) ? 'Đã có trong bộ từ của tôi' : isAddingWord ? 'Đang thêm...' : 'Thêm từ vào bộ của tôi'}
+                  </button>
+                )}
+                {selectedSubTopicIndex === 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkCurrentAsNew}
+                    disabled={isSavingAnswer || newWordIds.includes(activeCard.id)}
+                    className="px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 bg-amber-100 text-amber-800 hover:bg-amber-200 disabled:opacity-60 disabled:cursor-default"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {newWordIds.includes(activeCard.id) ? 'Đã đánh dấu từ mới' : 'Đánh dấu từ mới'}
+                  </button>
+                )}
+              </div>
+
               {/* Warning Alert Icon Top Left */}
               <button 
                 onClick={() => setIsFeedbackModalOpen(true)}
@@ -694,7 +950,7 @@ export default function Vocabulary() {
               {activeMode === 'flashcard' && (
                 <div className="space-y-6 max-w-xl mx-auto">
                   <div className="flex items-center justify-between text-xs font-extrabold text-slate-500 px-1">
-                    <span>Thẻ số {cardIndex + 1} / {currentCards.length}</span>
+                    <span>Thẻ số {cardIndex + 1} / {filteredCards.length}</span>
                     <span className="text-amber-600 dark:text-amber-400 font-mono">🔥 Đã ôn {reviewCount} từ</span>
                   </div>
 
@@ -718,7 +974,7 @@ export default function Vocabulary() {
                           </p>
 
                           <button 
-                            onClick={(e) => { e.stopPropagation(); speakText(activeCard.englishWord); }}
+                            onClick={(e) => { e.stopPropagation(); speakText(activeCard.englishWord, 'en-US', activeCard.audioUrl); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs mx-auto flex items-center gap-1.5 hover:bg-slate-200 transition-colors"
                           >
                             <Volume2 className="w-4 h-4 text-indigo-600" /> Nghe phát âm
@@ -753,43 +1009,29 @@ export default function Vocabulary() {
                     </div>
                   </div>
 
-                  {/* SM-2 Buttons */}
+                  {/* Flashcard answer buttons */}
                   <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border-2 border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
                     <div className="text-center text-xs font-extrabold text-slate-600 dark:text-slate-400">
-                      Đánh giá mức độ ghi nhớ theo thuật toán SM-2:
+                      Bạn nhớ đúng từ này không?
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <button
-                        onClick={() => handleSM2Review(0)}
-                        className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 font-black text-xs flex flex-col items-center transition-all"
+                        onClick={() => handleFlashcardAnswer(false)}
+                        disabled={isSavingAnswer}
+                        className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-black text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                       >
-                        <span>🔴 Again</span>
-                        <span className="text-[10px] text-rose-500 font-normal">1m</span>
+                        <RotateCcw className="w-4 h-4" />
+                        <span>ĐANG ÔN</span>
                       </button>
 
                       <button
-                        onClick={() => handleSM2Review(2)}
-                        className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-black text-xs flex flex-col items-center transition-all"
+                        onClick={() => handleFlashcardAnswer(true)}
+                        disabled={isSavingAnswer}
+                        className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 font-black text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                       >
-                        <span>🟠 Hard</span>
-                        <span className="text-[10px] text-amber-600 font-normal">12h</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleSM2Review(4)}
-                        className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900 font-black text-xs flex flex-col items-center transition-all"
-                      >
-                        <span>🔵 Good</span>
-                        <span className="text-[10px] text-sky-600 font-normal">1d</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleSM2Review(5)}
-                        className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 font-black text-xs flex flex-col items-center transition-all"
-                      >
-                        <span>🟢 Easy</span>
-                        <span className="text-[10px] text-emerald-600 font-normal">4d</span>
+                        <Check className="w-4 h-4" />
+                        <span>ĐÃ ÔN</span>
                       </button>
                     </div>
                   </div>
@@ -968,7 +1210,7 @@ export default function Vocabulary() {
                       {/* Phonetic Pronunciation Audio Buttons */}
                       <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-300">
                         <button 
-                          onClick={() => speakText(activeCard.englishWord, 'en-US')}
+                          onClick={() => speakText(activeCard.englishWord, 'en-US', activeCard.audioUrl)}
                           className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
                         >
                           <span className="font-mono text-indigo-600">US {activeCard.ipaUS}</span>
@@ -1111,11 +1353,51 @@ export default function Vocabulary() {
                 </div>
               )}
 
-              {/* Bottom Card Footer Note */}
-              <div className="text-center text-[11px] font-semibold text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                Nhóm học {cardIndex + 1}/20 • Tổng cộng {activeDeck.cardsCount || 992} thẻ trong bộ thẻ
+              <div className="flex flex-wrap justify-center gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+                {cardIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={handlePreviousCard}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 text-xs font-extrabold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+                  >
+                    <ArrowLeft className="mr-1 inline h-4 w-4" /> Thẻ trước đó
+                  </button>
+                )}
+                {isActiveCardStudied && cardIndex < filteredCards.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={handleNextCard}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 text-xs font-extrabold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+                  >
+                    Thẻ tiếp theo <ArrowRight className="ml-1 inline h-4 w-4" />
+                  </button>
+                )}
               </div>
 
+              {/* Bottom Card Footer Note */}
+              <div className="text-center text-[11px] font-semibold text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                Thẻ {cardIndex + 1}/{filteredCards.length} • Tổng cộng {activeDeck.cardsCount || currentCards.length} từ trong bộ chủ đề
+              </div>
+
+                </>
+              ) : (
+                <div className="min-h-72 flex flex-col items-center justify-center gap-2 text-center">
+                  <BookOpen className="w-10 h-10 text-slate-300" />
+                  <p className="font-bold text-slate-600 dark:text-slate-300">
+                    {isVocabularyProgressLoading
+                      ? 'Đang tải tiến độ từ vựng...'
+                      : `Chưa có từ nào trong mục “${subTopics[selectedSubTopicIndex]?.name}”.`}
+                  </p>
+                  {!isVocabularyProgressLoading && selectedSubTopicIndex !== 0 && (
+                    <button
+                      onClick={() => { setSelectedSubTopicIndex(0); setCardIndex(0); }}
+                      className="text-xs font-bold text-indigo-600 hover:underline"
+                    >
+                      Xem tất cả từ
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>
@@ -1470,10 +1752,8 @@ export default function Vocabulary() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {[1,2,3,4].map(i => (
-                  <div key={i} className="h-64 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-3xl" />
-                ))}
+              <div className="py-12 flex justify-center">
+                <LoadingBird label="Đang tải bộ từ vựng..." size={180} />
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

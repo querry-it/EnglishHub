@@ -7,7 +7,9 @@ import {
 } from 'lucide-react';
 import DictationStudio from '../../components/DictationStudio';
 import ShadowingStudio from '../../components/ShadowingStudio';
+import StudyModeModal from '../../components/StudyModeModal';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import LoadingBird from '../../components/LoadingBird';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 
@@ -58,111 +60,119 @@ function LimitPopup({ isOpen, onClose }) {
   );
 }
 
-// Component Skeleton để hiển thị khi đang tải dữ liệu
-const LessonCardSkeleton = () => (
-  <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border-2 border-slate-100 dark:border-slate-800 flex flex-col animate-pulse">
-    <div className="aspect-video bg-slate-200 dark:bg-slate-800" />
-    <div className="p-4 space-y-3">
-      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-3/4" />
-      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/2" />
-      <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/4" />
-        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/4" />
-      </div>
-    </div>
-  </div>
-);
-
 // Helper components tách biệt để tối ưu render
-const LessonCard = React.memo(({ lesson, onSelect, onSelectShadowing }) => (
-  <div
-    className="group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-400"
-  >
-    {/* Thumbnail Area */}
-    <div
-      onClick={() => {
-        onSelect(lesson.id);
-      }}
-      className="relative aspect-video overflow-hidden bg-slate-950 cursor-pointer"
-    >
-      <img
-        src={lesson.thumbnail}
-        alt={lesson.title}
-        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-        loading="lazy"
-        onError={(e) => {
-          e.target.src = 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=500&q=80';
-        }}
-      />
+const LessonCard = React.memo(({ lesson, pageMode, onOpen, onSelectMode }) => {
+  const modes = pageMode === 'topics'
+    ? [
+        { id: 'dictation', label: 'Dictation', progress: lesson.dictationProgress },
+        { id: 'shadowing', label: 'Shadowing', progress: lesson.shadowingProgress }
+      ]
+    : [{
+        id: pageMode,
+        label: pageMode === 'shadowing' ? 'Shadowing' : 'Dictation',
+        progress: pageMode === 'shadowing' ? lesson.shadowingProgress : lesson.dictationProgress
+      }];
 
-      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
-        <span className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-white font-bold text-[10px] flex items-center gap-1">
+  return (
+    <div className="group h-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-400">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Mở bài học: ${lesson.title}`}
+        className="relative aspect-video overflow-hidden bg-slate-950 cursor-pointer text-left"
+      >
+        <img
+          src={lesson.thumbnail}
+          alt=""
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+          loading="lazy"
+          onError={(event) => {
+            event.currentTarget.src = 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=500&q=80';
+          }}
+        />
+        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/60 text-white font-bold text-[10px] flex items-center gap-1">
           <Eye className="w-3 h-3 text-slate-300" /> {lesson.views}
         </span>
-      </div>
-
-      <div className="absolute top-2.5 right-2.5 z-10">
-        <span className={`px-2.5 py-0.5 rounded-lg text-white font-extrabold text-[11px] shadow-sm ${lesson.levelColor || 'bg-sky-600'}`}>
+        <span className={`absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-lg text-white font-extrabold text-[11px] shadow-sm ${lesson.levelColor || 'bg-sky-600'}`}>
           {lesson.level}
         </span>
-      </div>
-
-      <div className="absolute bottom-2.5 left-2.5 z-10">
-        <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-white font-semibold text-[10px] flex items-center gap-1">
+        <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/70 text-white font-semibold text-[10px] flex items-center gap-1">
           <Video className="w-3 h-3 text-rose-500 fill-current" /> Youtube
         </span>
-      </div>
-
-      <div className="absolute bottom-2.5 right-2.5 z-10">
-        <span className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-sm text-white font-mono text-[10px] font-bold flex items-center gap-1">
+        <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/80 text-white font-mono text-[10px] font-bold flex items-center gap-1">
           <Clock className="w-3 h-3 text-slate-300" /> {lesson.duration}
         </span>
-      </div>
-    </div>
+      </button>
 
-    {/* Card Info */}
-    <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white dark:bg-slate-900">
-      <h4
-        onClick={() => {
-          onSelect(lesson.id);
-        }}
-        className="font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer"
-      >
-        {lesson.title}
-      </h4>
-
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
         <button
-          onClick={() => {
-            onSelect(lesson.id);
-          }}
-          className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
+          type="button"
+          onClick={onOpen}
+          className="min-h-[2.5rem] text-left font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
         >
-          Dictation <span className="text-slate-400 text-[10px]">⊗</span>
+          {lesson.title}
         </button>
 
-        <button
-          onClick={() => {
-            onSelectShadowing(lesson.id);
-          }}
-          className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
-        >
-          Shadowing <span className="text-slate-400 text-[10px]">⊗</span>
-        </button>
+        <div className="space-y-3">
+          {modes.map(({ id, label, progress = 0 }) => (
+            <div key={id} className="space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] font-bold">
+                <span className="text-slate-600 dark:text-slate-300">{label}</span>
+                <span className="text-indigo-600 dark:text-indigo-400">{progress}%</span>
+              </div>
+              <div
+                role="progressbar"
+                aria-label={`Tiến độ ${label}`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+                className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
+              >
+                <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          {modes.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onSelectMode(lesson, id)}
+              className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-800 px-2 py-2 text-[10px] font-extrabold text-slate-700 dark:text-slate-200 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 transition-colors"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
-  </div>
-));
+  );
+});
 
-export default function Listening() {
+export default function Listening({ pageMode = 'topics' }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const mode = searchParams.get('mode') || 'dictation';
   const lessonId = searchParams.get('lessonId');
+  const requestedMode = searchParams.get('mode');
+  const mode = pageMode === 'topics'
+    ? (requestedMode || 'dictation')
+    : pageMode === 'dictation' && requestedMode === 'shadowing' && lessonId
+      ? 'shadowing'
+      : pageMode;
 
   const { user , openProModal } = useAuth();
+  const progressStorageKey = `listening_progress_${user?.id || 'guest'}`;
+  const dictationProgressStorageKey = `dictation_progress_${user?.id || 'guest'}`;
+  const shadowingProgressStorageKey = `shadowing_progress_${user?.id || 'guest'}`;
   const [customLessonCount, setCustomLessonCount] = useState(() => parseInt(localStorage.getItem('customLessonCount') || '0', 10));
   const [showLimitPopup, setShowLimitPopup] = useState(false);
+  const [dictationProgress, setDictationProgress] = useState({});
+  const [shadowingProgress, setShadowingProgress] = useState({});
+  const [listeningScores, setListeningScores] = useState({});
+  const [selectedStudyLesson, setSelectedStudyLesson] = useState(null);
+  const [isStudyModeOpen, setIsStudyModeOpen] = useState(false);
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [selectedTag, setSelectedTag] = useState(null);
@@ -301,10 +311,90 @@ export default function Listening() {
   ];
 
   const [lessons, setLessons] = useState([]);
+  const [lessonDetail, setLessonDetail] = useState(null);
+  const [isLessonDetailLoading, setIsLessonDetailLoading] = useState(false);
+  const [lessonDetailError, setLessonDetailError] = useState('');
+  const [lessonDetailReload, setLessonDetailReload] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
   const [isMoreLoading, setIsMoreLoading] = useState(false);
+
+  React.useEffect(() => {
+    try {
+      const readProgress = (key) => {
+        const saved = localStorage.getItem(key);
+        const parsed = saved ? JSON.parse(saved) : {};
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+      };
+      setDictationProgress(
+        localStorage.getItem(dictationProgressStorageKey)
+          ? readProgress(dictationProgressStorageKey)
+          : readProgress(progressStorageKey)
+      );
+      setShadowingProgress(readProgress(shadowingProgressStorageKey));
+    } catch (error) {
+      console.error('Lỗi khi đọc tiến độ luyện tập trên thiết bị:', error);
+      setDictationProgress({});
+      setShadowingProgress({});
+    }
+  }, [dictationProgressStorageKey, progressStorageKey, shadowingProgressStorageKey]);
+
+  const updateListeningProgress = React.useCallback((id, percentage, score, activityMode = 'dictation') => {
+    const lessonKey = String(id);
+    const setProgress = activityMode === 'shadowing' ? setShadowingProgress : setDictationProgress;
+    const modeStorageKey = activityMode === 'shadowing'
+      ? shadowingProgressStorageKey
+      : dictationProgressStorageKey;
+    setProgress(previous => {
+      const updated = { ...previous, [lessonKey]: percentage };
+      try {
+        localStorage.setItem(modeStorageKey, JSON.stringify(updated));
+        const legacyProgress = JSON.parse(localStorage.getItem(progressStorageKey) || '{}');
+        localStorage.setItem(progressStorageKey, JSON.stringify({
+          ...(legacyProgress && typeof legacyProgress === 'object' && !Array.isArray(legacyProgress) ? legacyProgress : {}),
+          [lessonKey]: percentage
+        }));
+      } catch (error) {
+        console.error('Lỗi khi lưu tiến độ luyện tập trên thiết bị:', error);
+      }
+      return updated;
+    });
+    if (score !== undefined) {
+      setListeningScores(previous => ({ ...previous, [lessonKey]: score }));
+    }
+  }, [dictationProgressStorageKey, progressStorageKey, shadowingProgressStorageKey]);
+
+  React.useEffect(() => {
+    setListeningScores({});
+    if (!user?.id) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    api.get('/lessons/my-progress', { params: { status: 'completed' } })
+      .then(response => {
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Không thể tải điểm luyện nghe.');
+        }
+
+        const progressItems = response.data.progress || [];
+        const scores = {};
+        progressItems.forEach(item => {
+          scores[String(item.id)] = item.score;
+        });
+        if (!cancelled) {
+          setListeningScores(scores);
+        }
+      })
+      .catch(error => {
+        console.error('Lỗi khi tải điểm luyện nghe:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, dictationProgressStorageKey, shadowingProgressStorageKey]);
 
   const fetchLessons = async (page = 1, isLoadMore = false) => {
     if (isLoadMore) setIsMoreLoading(true);
@@ -315,8 +405,8 @@ export default function Listening() {
       if (selectedTag === 'Người mới bắt đầu') levelParam = 'A2';
       if (selectedTag === 'Nâng cao') levelParam = 'B2';
 
-      let typeParam = undefined;
-      if (selectedTag === '#shadowing') typeParam = 'SPEAKING';
+      let typeParam;
+      if (pageMode === 'dictation') typeParam = 'PRACTICE';
 
       const response = await api.get(`/lessons`, {
         params: {
@@ -345,7 +435,51 @@ export default function Listening() {
 
   React.useEffect(() => {
     fetchLessons(1, false);
-  }, [selectedTag]);
+  }, [selectedTag, pageMode]);
+
+  React.useEffect(() => {
+    if (!lessonId || String(customLesson?.id) === String(lessonId)) {
+      setLessonDetail(null);
+      setLessonDetailError('');
+      return;
+    }
+
+    const sampleLesson = [...movieLessons, ...dailyLessons]
+      .find(lesson => String(lesson.id) === String(lessonId));
+    if (sampleLesson) {
+      setLessonDetail(null);
+      setLessonDetailError('');
+      setIsLessonDetailLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLessonDetailLoading(true);
+    setLessonDetailError('');
+
+    api.get(`/lessons/${lessonId}`)
+      .then(response => {
+        if (cancelled) return;
+        if (response.data.success) {
+          setLessonDetail(response.data.lesson);
+        } else {
+          setLessonDetailError(response.data.message || 'Không thể tải nội dung bài học.');
+        }
+      })
+      .catch(error => {
+        console.error('Lỗi khi tải nội dung bài học:', error);
+        if (!cancelled) {
+          setLessonDetailError(error.response?.data?.message || 'Không thể tải nội dung bài học.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLessonDetailLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId, customLesson?.id, lessonDetailReload]);
 
   const handleLoadMore = () => {
     if (pagination.page < pagination.totalPages) {
@@ -354,6 +488,9 @@ export default function Listening() {
   };
 
   const activeLessonDetail = lessons.find(l => String(l.id) === String(lessonId));
+  const selectedLessonDetail = lessonDetail && String(lessonDetail.id) === String(lessonId)
+    ? lessonDetail
+    : null;
 
   const handleCreateCustomLesson = () => {
     if (!youtubeUrl.trim()) return;
@@ -378,16 +515,91 @@ export default function Listening() {
     });
   };
 
-  const activeLesson = activeLessonDetail || customLesson || [...movieLessons, ...dailyLessons].find(l => String(l.id) === String(lessonId)) || movieLessons[0];
+  const fallbackLesson = activeLessonDetail
+    || customLesson
+    || [...movieLessons, ...dailyLessons].find(lesson => String(lesson.id) === String(lessonId))
+    || movieLessons[0];
+  const activeLesson = selectedLessonDetail
+    ? {
+        ...activeLessonDetail,
+        ...selectedLessonDetail,
+        videoUrl: selectedLessonDetail.videoUrl || selectedLessonDetail.embedUrl,
+        transcript: selectedLessonDetail.transcript || selectedLessonDetail.contentText,
+        transcripts: selectedLessonDetail.transcript || selectedLessonDetail.contentText
+      }
+    : { ...fallbackLesson, videoUrl: fallbackLesson.videoUrl || fallbackLesson.embedUrl };
+  const transcriptValue = selectedLessonDetail?.transcript || selectedLessonDetail?.contentText;
+  let hasSavedTranscript = false;
+  if (Array.isArray(transcriptValue)) {
+    hasSavedTranscript = transcriptValue.length > 0;
+  } else if (typeof transcriptValue === 'string' && transcriptValue.trim()) {
+    try {
+      const parsedTranscript = JSON.parse(transcriptValue);
+      hasSavedTranscript = Array.isArray(parsedTranscript)
+        ? parsedTranscript.length > 0
+        : Boolean(parsedTranscript);
+    } catch {
+      hasSavedTranscript = true;
+    }
+  }
+
+  const handleOpenLessonCard = (lesson) => {
+    if (pageMode === 'topics') {
+      setSelectedStudyLesson(lesson);
+      setIsStudyModeOpen(true);
+      return;
+    }
+
+    handleSelectLessonMode(lesson, pageMode);
+  };
+
+  const handleSelectLessonMode = (lesson, selectedMode) => {
+    const route = selectedMode === 'shadowing' ? '/shadowing' : '/listening';
+    navigate(`${route}?lessonId=${encodeURIComponent(lesson.id)}`);
+  };
+
+  const handleStudyModeSelection = (selectedMode, lesson) => {
+    handleSelectLessonMode(lesson, selectedMode);
+  };
 
   return (
     <div className="w-full min-h-screen pb-12">
         {lessonId ? (
           <ErrorBoundary>
-            {mode === 'shadowing' ? (
-              <ShadowingStudio lesson={activeLesson} />
+            {isLessonDetailLoading && String(customLesson?.id) !== String(lessonId) ? (
+              <div className="min-h-[50vh] flex items-center justify-center">
+                <LoadingBird label="Đang tải nội dung bài học..." size={180} />
+              </div>
+            ) : lessonDetailError ? (
+              <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 text-center">
+                <p className="text-slate-600 dark:text-slate-300 font-bold">{lessonDetailError}</p>
+                <button
+                  onClick={() => setLessonDetailReload(value => value + 1)}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold"
+                >
+                  Thử tải lại
+                </button>
+              </div>
+            ) : selectedLessonDetail && !hasSavedTranscript && String(customLesson?.id) !== String(lessonId) ? (
+              <div className="min-h-[50vh] flex items-center justify-center px-4 text-center">
+                <p className="max-w-xl text-slate-600 dark:text-slate-300 font-bold">
+                  Bài học này chưa có phụ đề được lưu. Hãy thêm phụ đề trong phần quản lý bài học để luyện nghe theo đúng video.
+                </p>
+              </div>
+            ) : mode === 'shadowing' ? (
+              <ShadowingStudio
+                lesson={activeLesson}
+                onProgressChange={updateListeningProgress}
+                isPreviouslyCompleted={Number(shadowingProgress[String(lessonId)]) >= 100}
+                previousScore={Number(shadowingProgress[String(lessonId)]) >= 100 ? listeningScores[String(lessonId)] : undefined}
+              />
             ) : (
-              <DictationStudio lesson={activeLesson} />
+              <DictationStudio
+                lesson={activeLesson}
+                onProgressChange={updateListeningProgress}
+                isPreviouslyCompleted={Number(dictationProgress[String(lessonId)]) >= 100}
+                previousScore={Number(dictationProgress[String(lessonId)]) >= 100 ? listeningScores[String(lessonId)] : undefined}
+              />
             )}
           </ErrorBoundary>
         ) : (
@@ -396,7 +608,11 @@ export default function Listening() {
             {/* 2. TAGS & TOPICS FILTER BAR */}
             <div className="space-y-3">
               <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                Luyện Shadowing và dictation qua video đa dạng chủ đề
+                {pageMode === 'topics'
+                  ? 'Luyện nghe và Shadowing qua video đa dạng chủ đề'
+                  : pageMode === 'shadowing'
+                    ? 'Luyện Shadowing qua video'
+                    : 'Luyện nghe - viết chính tả qua video'}
               </h2>
 
               <div className="flex items-center gap-2 flex-wrap">
@@ -441,12 +657,8 @@ export default function Listening() {
               </div>
 
               {isLoading ? (
-                <div className={showAll ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" : "flex gap-5 overflow-hidden"}>
-                  {[...Array(showAll ? 8 : 4)].map((_, i) => (
-                    <div key={i} className={showAll ? "" : "w-[280px] shrink-0"}>
-                      <LessonCardSkeleton />
-                    </div>
-                  ))}
+                <div className="min-h-[40vh] flex items-center justify-center">
+                  <LoadingBird label="Đang tải danh sách bài luyện nghe..." size={180} />
                 </div>
               ) : (
                 <>
@@ -465,11 +677,13 @@ export default function Listening() {
                                       ...l,
                                       thumbnail: getThumbnail(vId),
                                       views: 'New',
-                                      duration: 'Dictation'
+                                      dictationProgress: dictationProgress[String(l.id)] || 0,
+                                      shadowingProgress: shadowingProgress[String(l.id)] || 0,
+                                      score: listeningScores[String(l.id)]
                                     }}
-                                    onSelect={(id) => setSearchParams({ mode: 'dictation', lessonId: id })}
-                                    onSelectShadowing={(id) => setSearchParams({ mode: 'shadowing', lessonId: id })}
-                                    openProModal={openProModal}
+                                    pageMode={pageMode}
+                                    onOpen={() => handleOpenLessonCard(l)}
+                                    onSelectMode={handleSelectLessonMode}
                                   />
                                 </div>
                               );
@@ -495,11 +709,13 @@ export default function Listening() {
                                 ...l,
                                 thumbnail: getThumbnail(vId),
                                 views: 'New',
-                                duration: 'Dictation'
+                                dictationProgress: dictationProgress[String(l.id)] || 0,
+                                shadowingProgress: shadowingProgress[String(l.id)] || 0,
+                                score: listeningScores[String(l.id)]
                               }}
-                              onSelect={(id) => setSearchParams({ mode: 'dictation', lessonId: id })}
-                              onSelectShadowing={(id) => setSearchParams({ mode: 'shadowing', lessonId: id })}
-                              openProModal={openProModal}
+                              pageMode={pageMode}
+                              onOpen={() => handleOpenLessonCard(l)}
+                              onSelectMode={handleSelectLessonMode}
                             />
                           );
                         })}
@@ -547,10 +763,14 @@ export default function Listening() {
                 {movieLessons.map(l => (
                   <LessonCard
                     key={l.id}
-                    lesson={l}
-                    onSelect={(id) => setSearchParams({ mode: 'dictation', lessonId: id })}
-                    onSelectShadowing={(id) => setSearchParams({ mode: 'shadowing', lessonId: id })}
-                    openProModal={openProModal}
+                    lesson={{
+                      ...l,
+                      dictationProgress: dictationProgress[String(l.id)] || 0,
+                      shadowingProgress: shadowingProgress[String(l.id)] || 0
+                    }}
+                    pageMode={pageMode}
+                    onOpen={() => handleOpenLessonCard(l)}
+                    onSelectMode={handleSelectLessonMode}
                   />
                 ))}
               </div>
@@ -558,6 +778,12 @@ export default function Listening() {
 
           </div>
         )}
+        <StudyModeModal
+          isOpen={isStudyModeOpen}
+          onClose={() => setIsStudyModeOpen(false)}
+          lesson={selectedStudyLesson}
+          onSelectMode={handleStudyModeSelection}
+        />
       </div>
   );
 }

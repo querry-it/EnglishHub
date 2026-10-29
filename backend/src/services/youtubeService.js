@@ -26,6 +26,112 @@ const formatDuration = (seconds) => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
+const createZenRowsUrl = (url, apiKey, useCustomHeaders = false) => {
+  const requestUrl = new URL('https://api.zenrows.com/v1/');
+  requestUrl.searchParams.set('apikey', apiKey);
+  requestUrl.searchParams.set('url', url);
+  requestUrl.searchParams.set('premium_proxy', 'true');
+  if (useCustomHeaders) requestUrl.searchParams.set('custom_headers', 'true');
+  return requestUrl;
+};
+
+const fetchWithZenRows = async (url, apiKey, options = {}) => {
+  const requestUrl = createZenRowsUrl(url, apiKey, Boolean(options.headers));
+  const response = await fetch(requestUrl, {
+    ...options,
+    signal: AbortSignal.timeout(60000)
+  });
+  if (!response.ok) {
+    throw new Error(`ZenRows request failed with status ${response.status}`);
+  }
+
+  return response.text();
+};
+
+const getTranscriptWithZenRows = async (videoId) => {
+  const apiKey = process.env.ZENROWS_API_KEY;
+  if (!apiKey) return [];
+
+  console.log('[YouTube Service] Thu phuong an du phong ZenRows...');
+  const client = {
+    name: 'IOS',
+    version: '20.10.4',
+    header: '5',
+    userAgent: 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
+    context: {
+      deviceMake: 'Apple',
+      deviceModel: 'iPhone16,2',
+      platform: 'MOBILE',
+      osName: 'iOS',
+      osVersion: '18.3.2.22D82'
+    }
+  };
+  const playerResponseText = await fetchWithZenRows(
+    'https://youtubei.googleapis.com/youtubei/v1/player?prettyPrint=false',
+    apiKey,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: '*/*',
+        'User-Agent': client.userAgent,
+        'X-YouTube-Client-Name': client.header,
+        'X-YouTube-Client-Version': client.version,
+        Origin: 'https://www.youtube.com'
+      },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: client.name,
+            clientVersion: client.version,
+            hl: 'en',
+            gl: 'US',
+            ...client.context
+          },
+          user: { lockedSafetyMode: false },
+          request: { useSsl: true }
+        },
+        videoId,
+        contentCheckOk: true,
+        racyCheckOk: true
+      })
+    }
+  );
+  const playerResponse = JSON.parse(playerResponseText);
+  const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+  const englishTracks = captionTracks
+    .filter(track => /^en(?:-|$)/i.test(track.languageCode || ''))
+    .sort((a, b) => {
+      const priority = track => track.vssId === '.en' ? 0 : track.vssId === 'a.en' ? 1 : 2;
+      return priority(a) - priority(b);
+    });
+  const seenTrackUrls = new Set();
+
+  for (const track of englishTracks) {
+    if (!track.baseUrl || seenTrackUrls.has(track.baseUrl)) continue;
+    seenTrackUrls.add(track.baseUrl);
+
+    const captionUrl = new URL(track.baseUrl);
+    captionUrl.searchParams.set('fmt', 'json3');
+    const captionData = await fetchWithZenRows(captionUrl.toString(), apiKey);
+    const events = JSON.parse(captionData).events || [];
+    const subtitles = events.flatMap(event => {
+      const text = (event.segs || []).map(segment => segment.utf8 || '').join('');
+      if (!text.trim() || event.tStartMs == null) return [];
+
+      return [{
+        start: Number(event.tStartMs) / 1000,
+        dur: Number(event.dDurationMs || 0) / 1000,
+        text
+      }];
+    });
+
+    if (subtitles.length > 0) return subtitles;
+  }
+
+  return [];
+};
+
 /**
  * Trich xuat phu de tu YouTube
  */
@@ -40,7 +146,7 @@ export const getYoutubeTranscript = async (videoUrlOrId) => {
 
   let rawSubtitles = [];
 
-  // PHUONG PHAP 1: youtube-caption-extractor 
+  // PHUONG PHAP 1: youtube-caption-extractor
   try {
     console.log(`[YouTube Service] Thu cach 1: youtube-caption-extractor (lang: en)...`);
     const subtitles = await getSubtitles({
@@ -80,6 +186,14 @@ export const getYoutubeTranscript = async (videoUrlOrId) => {
           break;
         }
       } catch (error) { continue; }
+    }
+  }
+
+  if (rawSubtitles.length === 0 && process.env.ZENROWS_API_KEY) {
+    try {
+      rawSubtitles = await getTranscriptWithZenRows(videoId);
+    } catch (error) {
+      console.warn(`[YouTube Service] ZenRows that bai: ${error.message}`);
     }
   }
 
