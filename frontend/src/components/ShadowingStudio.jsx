@@ -1,21 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, Pause, RotateCcw, ChevronLeft, ChevronRight, 
-  Mic, Volume2, Settings, Keyboard, MessageSquare, 
+  Mic, Settings, Keyboard, MessageSquare,
   ChevronUp, ChevronDown, Edit3, AlertTriangle, Eye, EyeOff,
-  Video, ExternalLink
+  Video, ExternalLink, Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NoteModal from './NoteModal';
 import { useAuth } from '../context/AuthContext';
 import { Crown, Lock, CheckCircle2, Sparkles } from 'lucide-react';
 import api from '../api/axios';
+import { convertRecordingToWavBase64 } from '../utils/pronunciationAudio';
 
-export default function ShadowingStudio({ lesson }) {
-  const { openProModal, updateProfile } = useAuth();
+export default function ShadowingStudio({
+  lesson,
+  onProgressChange,
+  isPreviouslyCompleted = false,
+  previousScore
+}) {
+  const { openProModal, updateProfile, user } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [hasRecorded, setHasRecorded] = useState(false);
+  const [isAssessing, setIsAssessing] = useState(false);
+  const [recordingError, setRecordingError] = useState('');
+  const [segmentAssessments, setSegmentAssessments] = useState({});
   const [autoPause, setAutoPause] = useState(true);
   const [hideTranscript, setHideTranscript] = useState(false);
   const [showIPA, setShowIPA] = useState(true);
@@ -28,6 +36,10 @@ export default function ShadowingStudio({ lesson }) {
 
   // Ref for iframe video control
   const iframeRef = useRef(null);
+  const recorderRef = useRef(null);
+  const microphoneStreamRef = useRef(null);
+  const recordingChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
 
   // Note Modal state
   const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -126,20 +138,83 @@ export default function ShadowingStudio({ lesson }) {
   };
 
   const [shadowingSegments, setShadowingSegments] = useState(() => generateSegments(currentLesson));
-
-  useEffect(() => {
-    setShadowingSegments(generateSegments(currentLesson));
-    setCurrentSegmentIndex(0);
-  }, [lesson?.id]);
-
-  const activeSegment = shadowingSegments[currentSegmentIndex] || shadowingSegments[0];
-
+  const progressStorageKey = `shadowing_progress_${user?.id || 'guest'}_${currentLesson.id}`;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(isPreviouslyCompleted);
+  const [hasChosenCompletionAction, setHasChosenCompletionAction] = useState(false);
+  const [isReviewOnly, setIsReviewOnly] = useState(false);
+
+  const saveRecordedProgress = (updatedRecordedSegments) => {
+    const recordedCount = Object.values(updatedRecordedSegments).filter(Boolean).length;
+    const totalSegments = shadowingSegments.length;
+    const percentage = totalSegments > 0 ? Math.round((recordedCount / totalSegments) * 100) : 0;
+
+    try {
+      localStorage.setItem(progressStorageKey, JSON.stringify(updatedRecordedSegments));
+    } catch (error) {
+      console.error('Lỗi khi lưu tiến độ Shadowing trên thiết bị:', error);
+    }
+
+    onProgressChange?.(currentLesson.id, percentage, undefined, 'shadowing');
+  };
+
+  useEffect(() => {
+    const generatedSegments = generateSegments(currentLesson);
+    setShadowingSegments(generatedSegments);
+    setCurrentSegmentIndex(0);
+    setSegmentAssessments({});
+    setRecordingError('');
+
+    try {
+      const saved = localStorage.getItem(progressStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const restored = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? Object.fromEntries(
+              Object.entries(parsed).filter(([index, recorded]) =>
+                recorded === true
+                && Number.isInteger(Number(index))
+                && Number(index) >= 0
+                && Number(index) < generatedSegments.length
+              )
+            )
+          : {};
+        setRecordedSegments(restored);
+      } else {
+        setRecordedSegments({});
+      }
+    } catch (error) {
+      console.error('Lỗi khi khôi phục tiến độ Shadowing trên thiết bị:', error);
+      setRecordedSegments({});
+    }
+  }, [lesson?.id, user?.id]);
+
+  useEffect(() => () => {
+    if (recordingTimerRef.current) {
+      window.clearTimeout(recordingTimerRef.current);
+    }
+    if (recorderRef.current) {
+      recorderRef.current.onstop = null;
+      if (recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop();
+      }
+    }
+    microphoneStreamRef.current?.getTracks().forEach(track => track.stop());
+  }, []);
+
+  useEffect(() => {
+    if (isPreviouslyCompleted && !hasChosenCompletionAction) {
+      setShowCompletionPrompt(true);
+    }
+  }, [isPreviouslyCompleted, hasChosenCompletionAction]);
+
+  const activeSegment = shadowingSegments[currentSegmentIndex] || shadowingSegments[0];
+  const activeAssessment = segmentAssessments[currentSegmentIndex];
 
   const seekToSegment = (idx) => {
-    if (!shadowingSegments || !shadowingSegments[idx]) return;
+    if (isRecording || isAssessing || !shadowingSegments || !shadowingSegments[idx]) return;
     setCurrentSegmentIndex(idx);
     setIsPlaying(true);
     const targetSeg = shadowingSegments[idx];
@@ -168,9 +243,9 @@ export default function ShadowingStudio({ lesson }) {
   };
 
   const handleNextSegment = () => {
+    if (isRecording || isAssessing) return;
     if (currentSegmentIndex < shadowingSegments.length - 1) {
       seekToSegment(currentSegmentIndex + 1);
-      setHasRecorded(false);
     } else {
       handleSubmitResult();
     }
@@ -185,6 +260,11 @@ export default function ShadowingStudio({ lesson }) {
 
   const handleSubmitResult = async () => {
     if (isSubmitting || isFinished) return;
+    if (isReviewOnly) {
+      setIsFinished(true);
+      setSubmitResult({ score: previousScore || 0, expGained: 0, levelUp: false });
+      return;
+    }
     setIsSubmitting(true);
 
     const finalScore = calculateShadowingScore();
@@ -196,8 +276,15 @@ export default function ShadowingStudio({ lesson }) {
       });
 
       if (result.success) {
+        setHasChosenCompletionAction(true);
         setSubmitResult(result.data);
         setIsFinished(true);
+        try {
+          localStorage.removeItem(progressStorageKey);
+        } catch (error) {
+          console.error('Lỗi khi xóa tiến độ Shadowing đã hoàn thành:', error);
+        }
+        onProgressChange?.(currentLesson.id, 100, result.data.score, 'shadowing');
         if (result.data.totalExp !== undefined) {
           updateProfile({
             totalExp: result.data.totalExp,
@@ -212,20 +299,157 @@ export default function ShadowingStudio({ lesson }) {
     }
   };
 
-  const handleToggleRecord = () => {
-    if (!isRecording) {
-      setIsRecording(true);
-      setHasRecorded(false);
-    } else {
-      setIsRecording(false);
-      setHasRecorded(true);
-      // Đánh dấu đoạn này đã được ghi âm
-      setRecordedSegments(prev => ({
-        ...prev,
-        [currentSegmentIndex]: true
+  const assessRecording = async (recordingBlob, segmentIndex) => {
+    setIsAssessing(true);
+    setRecordingError('');
+
+    try {
+      const audio = await convertRecordingToWavBase64(recordingBlob);
+      const { data: response } = await api.post('/pronunciation/assess', audio);
+      if (!response.success || !response.data?.scores) {
+        throw new Error(response.message || 'Không nhận được kết quả chấm phát âm.');
+      }
+
+      setSegmentAssessments(previous => ({
+        ...previous,
+        [segmentIndex]: response.data
       }));
+      const updatedRecordedSegments = {
+        ...recordedSegments,
+        [segmentIndex]: true
+      };
+      setRecordedSegments(updatedRecordedSegments);
+      saveRecordedProgress(updatedRecordedSegments);
+    } catch (error) {
+      console.error('Pronunciation assessment error:', error);
+      setRecordingError(
+        error.response?.data?.message
+        || error.message
+        || 'Không thể chấm bản ghi. Hãy thử ghi âm lại.'
+      );
+    } finally {
+      setIsAssessing(false);
     }
   };
+
+  const handleToggleRecord = async () => {
+    if (isAssessing) return;
+    if (isRecording) {
+      recorderRef.current?.stop();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setRecordingError('Trình duyệt này không hỗ trợ ghi âm. Hãy thử Chrome hoặc Edge.');
+      return;
+    }
+
+    try {
+      setRecordingError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      microphoneStreamRef.current = stream;
+      recordingChunksRef.current = [];
+      const segmentIndex = currentSegmentIndex;
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        if (recordingTimerRef.current) {
+          window.clearTimeout(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        microphoneStreamRef.current?.getTracks().forEach(track => track.stop());
+        microphoneStreamRef.current = null;
+        setIsRecording(false);
+
+        const recording = new Blob(recordingChunksRef.current, {
+          type: recorder.mimeType || 'audio/webm'
+        });
+        if (recording.size === 0) {
+          setRecordingError('Không thu được âm thanh. Hãy kiểm tra micro rồi thử lại.');
+          return;
+        }
+        void assessRecording(recording, segmentIndex);
+      };
+
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
+          '*'
+        );
+      }
+      setIsPlaying(false);
+      recorder.start();
+      setIsRecording(true);
+      recordingTimerRef.current = window.setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop();
+      }, 30_000);
+    } catch (error) {
+      microphoneStreamRef.current?.getTracks().forEach(track => track.stop());
+      microphoneStreamRef.current = null;
+      setIsRecording(false);
+      console.error('Microphone recording error:', error);
+      setRecordingError(
+        error.name === 'NotAllowedError'
+          ? 'Bạn cần cho phép truy cập micro để luyện phát âm.'
+          : 'Không thể bắt đầu ghi âm. Hãy kiểm tra micro và thử lại.'
+      );
+    }
+  };
+
+  const handleReviewCompletedLesson = () => {
+    setHasChosenCompletionAction(true);
+    setIsReviewOnly(true);
+    setShowCompletionPrompt(false);
+    setCurrentSegmentIndex(0);
+    setIsFinished(false);
+    setSubmitResult(null);
+  };
+
+  const handleRedoCompletedLesson = () => {
+    setHasChosenCompletionAction(true);
+    setIsReviewOnly(false);
+    setShowCompletionPrompt(false);
+    setIsFinished(false);
+    setSubmitResult(null);
+    setCurrentSegmentIndex(0);
+    setRecordedSegments({});
+    setSegmentAssessments({});
+    setRecordingError('');
+    onProgressChange?.(currentLesson.id, 0, undefined, 'shadowing');
+    try {
+      localStorage.removeItem(progressStorageKey);
+    } catch (error) {
+      console.error('Lỗi khi xóa tiến độ cũ trước khi làm lại:', error);
+    }
+  };
+
+  if (showCompletionPrompt) {
+    return (
+      <div className="min-h-[65vh] flex items-center justify-center px-4">
+        <div className="w-full max-w-lg rounded-3xl border-2 border-emerald-200 bg-white p-8 text-center shadow-xl dark:border-emerald-900 dark:bg-slate-900">
+          <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-emerald-500" />
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white">Bạn đã hoàn thành bài này</h2>
+          <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+            Điểm lần gần nhất: <span className="font-black text-emerald-600">{Math.round(previousScore || 0)}%</span>
+          </p>
+          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+            Ôn lại sẽ không gửi điểm mới. Làm lại sẽ cập nhật điểm sau khi nộp, nhưng không cộng EXP lần nữa.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <button onClick={handleReviewCompletedLesson} className="rounded-2xl border-2 border-slate-200 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+              Ôn lại bài
+            </button>
+            <button onClick={handleRedoCompletedLesson} className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white hover:bg-indigo-700">
+              Làm lại bài
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 max-w-[1550px] mx-auto w-full text-slate-900 dark:text-white flex flex-col h-[calc(100vh-85px)] overflow-hidden">
@@ -406,16 +630,30 @@ export default function ShadowingStudio({ lesson }) {
               {isFinished && submitResult ? (
                 <div className="w-full p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/50 animate-fade-in space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">HOÀN THÀNH SHADOWING!</span>
+                    <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                      {isReviewOnly ? 'ĐANG ÔN LẠI SHADOWING' : 'HOÀN THÀNH SHADOWING!'}
+                    </span>
                     <span className="text-xs font-bold text-emerald-600">Score: {Math.round(submitResult.score)}%</span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
                     <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>+{submitResult.expGained} EXP</span>
+                    <span>
+                      {isReviewOnly
+                        ? 'Ôn lại không gửi điểm hoặc cộng EXP.'
+                        : submitResult.expGained > 0
+                          ? `+${submitResult.expGained} EXP`
+                          : 'Không cộng EXP lần nữa.'}
+                    </span>
                     {submitResult.levelUp && (
                       <span className="px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-black">LEVEL UP TO {submitResult.level}!</span>
                     )}
                   </div>
+                  <button
+                    onClick={handleRedoCompletedLesson}
+                    className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-xs font-black text-white hover:bg-indigo-700"
+                  >
+                    Làm lại bài
+                  </button>
                 </div>
               ) : (
                 <>
@@ -430,20 +668,30 @@ export default function ShadowingStudio({ lesson }) {
 
                   <button
                     onClick={handleToggleRecord}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isAssessing}
                     className={`px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all active:scale-98 ${
                       isRecording
                         ? 'bg-rose-600 text-white animate-pulse'
                         : 'bg-[#1E2540] hover:bg-[#161a2e] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white'
                     } disabled:opacity-50`}
                   >
-                    <Mic className="w-4 h-4 fill-current" />
-                    <span>{isRecording ? '🔴 ĐANG GHI ÂM...' : 'GHI ÂM'}</span>
+                    {isAssessing
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Mic className="w-4 h-4 fill-current" />}
+                    <span>
+                      {isAssessing
+                        ? 'ĐANG CHẤM...'
+                        : isRecording
+                          ? 'DỪNG & CHẤM'
+                          : activeAssessment
+                            ? 'GHI ÂM LẠI'
+                            : 'GHI ÂM'}
+                    </span>
                   </button>
 
                   <button
                     onClick={handleNextSegment}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isRecording || isAssessing}
                     className="px-8 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 disabled:opacity-50"
                   >
                     <span>{currentSegmentIndex === shadowingSegments.length - 1 ? (isSubmitting ? 'ĐANG NỘP...' : 'XONG') : 'TIẾP'}</span>
@@ -452,6 +700,49 @@ export default function ShadowingStudio({ lesson }) {
                 </>
               )}
             </div>
+
+            {(recordingError || isAssessing || activeAssessment) && (
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4">
+                {isAssessing ? (
+                  <div className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-300">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang phân tích bản ghi...
+                  </div>
+                ) : recordingError ? (
+                  <p role="alert" className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                    {recordingError}
+                  </p>
+                ) : activeAssessment ? (
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Điểm đánh giá toàn câu · tham khảo
+                        </p>
+                        <p className="mt-1 text-3xl font-black text-indigo-600 dark:text-indigo-400">
+                          {activeAssessment.scores.total}<span className="text-base">/10</span>
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        {[
+                          ['Phát âm', activeAssessment.scores.accuracy],
+                          ['Trôi chảy', activeAssessment.scores.fluency],
+                          ['Ngữ điệu', activeAssessment.scores.prosodic]
+                        ].map(([label, score]) => (
+                          <div key={label} className="min-w-[4.5rem]">
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{label}</p>
+                            <p className="text-sm font-black text-slate-800 dark:text-slate-100">{score}/10</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="mt-3 text-[11px] font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                      Model dự đoán điểm cho cả câu từ audio; chưa xác định từ/âm nào sai và chưa được kiểm chứng với người học Việt Nam.
+                    </p>
+                  </>
+                ) : null}
+              </div>
+            )}
 
           </div>
           )}

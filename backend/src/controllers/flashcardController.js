@@ -8,10 +8,21 @@ export const addFlashcard = async (req, res) => {
     const userId = req.user.id;
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
+    if (typeof word !== 'string' || !word.trim() || typeof meaning !== 'string' || !meaning.trim()) {
+      return res.status(400).json({ success: false, message: 'Từ vựng và nghĩa là bắt buộc.' });
+    }
+
+    const existing = await prisma.flashcardReview.findFirst({
+      where: { userId, word: { equals: word.trim(), mode: 'insensitive' } }
+    });
+    if (existing) {
+      return res.json({ success: true, data: existing, alreadyExists: true });
+    }
+
     const flashcard = await prisma.flashcardReview.create({
       data: {
         userId,
-        word,
+        word: word.trim(),
         phonetic,
         meaning,
         definition,
@@ -32,6 +43,7 @@ export const addFlashcard = async (req, res) => {
 
     res.status(201).json({ success: true, data: flashcard });
   } catch (error) {
+    console.error('Lỗi khi thêm Flashcard:', error);
     res.status(500).json({ success: false, message: 'Lỗi khi thêm Flashcard' });
   }
 };
@@ -135,11 +147,13 @@ export const reviewFlashcard = async (req, res) => {
         },
         update: {
           reviewCount: { increment: 1 },
-          lastReviewedAt: new Date()
+          lastReviewedAt: new Date(),
+          isCorrect: q >= 3
         },
         create: {
           userId,
-          vocabularyId: masterWord.id
+          vocabularyId: masterWord.id,
+          isCorrect: q >= 3
         }
       });
     }

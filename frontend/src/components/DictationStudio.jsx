@@ -10,8 +10,13 @@ import NoteModal from './NoteModal';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
-export default function DictationStudio({ lesson }) {
-  const { openProModal, updateProfile } = useAuth();
+export default function DictationStudio({
+  lesson,
+  onProgressChange,
+  isPreviouslyCompleted = false,
+  previousScore
+}) {
+  const { openProModal, updateProfile, user } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [hideMedia, setHideMedia] = useState(false);
   const [hideTranscript, setHideTranscript] = useState(false);
@@ -26,6 +31,9 @@ export default function DictationStudio({ lesson }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(isPreviouslyCompleted);
+  const [hasChosenCompletionAction, setHasChosenCompletionAction] = useState(false);
+  const [isReviewOnly, setIsReviewOnly] = useState(false);
 
   // Track manual hints used (to calculate score)
   const [hintsCount, setHintsCount] = useState(0);
@@ -188,11 +196,69 @@ export default function DictationStudio({ lesson }) {
   };
 
   const [segments, setSegments] = useState(() => generateDynamicSegments(currentLesson));
+  const progressStorageKey = `listening_progress_${user?.id || 'guest'}_${currentLesson.id}`;
+
+  const saveSegmentsProgress = (updatedSegments) => {
+    const snapshot = updatedSegments.map(segment => ({
+      words: segment.words.map(word => ({
+        revealed: word.revealed,
+        isHintUsed: word.isHintUsed
+      }))
+    }));
+    const totalSegments = updatedSegments.length;
+    const completedSegments = updatedSegments.filter(segment =>
+      segment.words.length > 0 && segment.words.every(word => word.revealed)
+    ).length;
+    const percentage = totalSegments > 0 ? Math.round((completedSegments / totalSegments) * 100) : 0;
+
+    try {
+      localStorage.setItem(progressStorageKey, JSON.stringify(snapshot));
+    } catch (error) {
+      console.error('Lỗi khi lưu tiến độ luyện nghe trên thiết bị:', error);
+    }
+
+    onProgressChange?.(currentLesson.id, percentage, undefined, 'dictation');
+  };
 
   useEffect(() => {
-    setSegments(generateDynamicSegments(currentLesson));
+    const freshSegments = generateDynamicSegments(currentLesson);
+    let restoredSegments = freshSegments;
+
+    try {
+      const saved = localStorage.getItem(progressStorageKey);
+      if (saved) {
+        const snapshot = JSON.parse(saved);
+        const isValidSnapshot = Array.isArray(snapshot)
+          && snapshot.length === freshSegments.length
+          && snapshot.every((segment, segmentIndex) =>
+            Array.isArray(segment.words)
+            && segment.words.length === freshSegments[segmentIndex].words.length
+          );
+
+        if (isValidSnapshot) {
+          restoredSegments = freshSegments.map((segment, segmentIndex) => ({
+            ...segment,
+            words: segment.words.map((word, wordIndex) => ({
+              ...word,
+              revealed: Boolean(snapshot[segmentIndex].words[wordIndex].revealed),
+              isHintUsed: Boolean(snapshot[segmentIndex].words[wordIndex].isHintUsed)
+            }))
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi khôi phục tiến độ luyện nghe trên thiết bị:', error);
+    }
+
+    setSegments(restoredSegments);
     setCurrentSegmentIndex(0);
-  }, [lesson?.id, lesson?.duration]);
+  }, [lesson?.id, lesson?.duration, user?.id]);
+
+  useEffect(() => {
+    if (isPreviouslyCompleted && !hasChosenCompletionAction) {
+      setShowCompletionPrompt(true);
+    }
+  }, [isPreviouslyCompleted, hasChosenCompletionAction]);
 
   // Safe activeSegment fallback with words array to prevent null pointer crash
   const activeSegment = (segments && segments[currentSegmentIndex]) || (segments && segments[0]) || {
@@ -247,6 +313,7 @@ export default function DictationStudio({ lesson }) {
       updated[currentSegmentIndex].words[wordIndex].revealed = true;
       updated[currentSegmentIndex].words[wordIndex].isHintUsed = true;
       setSegments(updated);
+      saveSegmentsProgress(updated);
     }
   };
 
@@ -260,6 +327,7 @@ export default function DictationStudio({ lesson }) {
       }
     });
     setSegments(updated);
+    saveSegmentsProgress(updated);
   };
 
   const handleUserAnswerChange = (val) => {
@@ -281,6 +349,7 @@ export default function DictationStudio({ lesson }) {
 
     if (changed) {
       setSegments(updated);
+      saveSegmentsProgress(updated);
     }
   };
 
@@ -295,6 +364,11 @@ export default function DictationStudio({ lesson }) {
 
   const handleSubmitResult = async () => {
     if (isSubmitting || isFinished) return;
+    if (isReviewOnly) {
+      setIsFinished(true);
+      setSubmitResult({ score: previousScore || 0, expGained: 0, levelUp: false });
+      return;
+    }
     setIsSubmitting(true);
 
     // Calculate score based on words revealed without hints
@@ -312,8 +386,15 @@ export default function DictationStudio({ lesson }) {
       });
 
       if (result.success) {
+        setHasChosenCompletionAction(true);
         setSubmitResult(result.data);
         setIsFinished(true);
+        try {
+          localStorage.removeItem(progressStorageKey);
+        } catch (error) {
+          console.error('Lỗi khi xóa tiến độ luyện nghe đã hoàn thành:', error);
+        }
+        onProgressChange?.(currentLesson.id, 100, result.data.score, 'dictation');
 
         // Cập nhật EXP và Level vào AuthContext ngay lập tức
         if (result.data.totalExp !== undefined) {
@@ -339,6 +420,33 @@ export default function DictationStudio({ lesson }) {
     }
   };
 
+  const handleReviewCompletedLesson = () => {
+    setHasChosenCompletionAction(true);
+    setIsReviewOnly(true);
+    setShowCompletionPrompt(false);
+    setCurrentSegmentIndex(0);
+    setIsFinished(false);
+    setSubmitResult(null);
+  };
+
+  const handleRedoCompletedLesson = () => {
+    setHasChosenCompletionAction(true);
+    setIsReviewOnly(false);
+    setShowCompletionPrompt(false);
+    setIsFinished(false);
+    setSubmitResult(null);
+    setUserAnswer('');
+    setCurrentSegmentIndex(0);
+    const freshSegments = generateDynamicSegments(currentLesson);
+    setSegments(freshSegments);
+    onProgressChange?.(currentLesson.id, 0, undefined, 'dictation');
+    try {
+      localStorage.removeItem(progressStorageKey);
+    } catch (error) {
+      console.error('Lỗi khi xóa tiến độ cũ trước khi làm lại:', error);
+    }
+  };
+
   const [isExtractingAi, setIsExtractingAi] = useState(false);
   const [aiStatusMessage, setAiStatusMessage] = useState('');
 
@@ -346,12 +454,39 @@ export default function DictationStudio({ lesson }) {
     setIsExtractingAi(true);
     setAiStatusMessage('AI Whisper STT Engine: Dang boc tach am thanh & trich xuat 100% toan bo chu tu Video...');
     setTimeout(() => {
-      setSegments(generateDynamicSegments(currentLesson));
+      const refreshedSegments = generateDynamicSegments(currentLesson);
+      setSegments(refreshedSegments);
+      saveSegmentsProgress(refreshedSegments);
       setIsExtractingAi(false);
       setAiStatusMessage('Da trich xuat 100% full tu vung & toan bo loi thoai tu Video thanh cong!');
       setTimeout(() => setAiStatusMessage(''), 4000);
     }, 1200);
   };
+
+  if (showCompletionPrompt) {
+    return (
+      <div className="min-h-[65vh] flex items-center justify-center px-4">
+        <div className="w-full max-w-lg rounded-3xl border-2 border-emerald-200 bg-white p-8 text-center shadow-xl dark:border-emerald-900 dark:bg-slate-900">
+          <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-emerald-500" />
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white">Bạn đã hoàn thành bài này</h2>
+          <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+            Điểm lần gần nhất: <span className="font-black text-emerald-600">{Math.round(previousScore || 0)}%</span>
+          </p>
+          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+            Ôn lại sẽ không gửi điểm mới. Làm lại sẽ cập nhật điểm sau khi nộp, nhưng không cộng EXP lần nữa.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <button onClick={handleReviewCompletedLesson} className="rounded-2xl border-2 border-slate-200 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+              Ôn lại bài
+            </button>
+            <button onClick={handleRedoCompletedLesson} className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white hover:bg-indigo-700">
+              Làm lại bài
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 max-w-[1550px] mx-auto w-full text-slate-900 dark:text-white flex flex-col h-[calc(100vh-85px)] overflow-hidden">
@@ -752,16 +887,30 @@ export default function DictationStudio({ lesson }) {
                 {isFinished && submitResult ? (
                   <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/50 animate-fade-in space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">HOÀN THÀNH!</span>
+                      <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                        {isReviewOnly ? 'ĐANG ÔN LẠI BÀI' : 'HOÀN THÀNH!'}
+                      </span>
                       <span className="text-xs font-bold text-emerald-600">Score: {Math.round(submitResult.score)}%</span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
                       <Sparkles className="w-4 h-4 text-amber-500" />
-                      <span>+{submitResult.expGained} EXP</span>
+                      <span>
+                        {isReviewOnly
+                          ? 'Ôn lại không gửi điểm hoặc cộng EXP.'
+                          : submitResult.expGained > 0
+                            ? `+${submitResult.expGained} EXP`
+                            : 'Không cộng EXP lần nữa.'}
+                      </span>
                       {submitResult.levelUp && (
                         <span className="px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-black">LEVEL UP TO {submitResult.level}!</span>
                       )}
                     </div>
+                    <button
+                      onClick={handleRedoCompletedLesson}
+                      className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-xs font-black text-white hover:bg-indigo-700"
+                    >
+                      Làm lại bài
+                    </button>
                   </div>
                 ) : (
                   <>

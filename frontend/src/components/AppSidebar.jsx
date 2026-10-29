@@ -17,7 +17,9 @@ const STUDENT_SECTIONS = [
     label: null,
     items: [
       { label: 'Trang chủ',          icon: Home,          path: '/dashboard' },
+      { label: 'Chủ đề',             icon: Video,         path: '/topics' },
       { label: 'Luyện nghe',         icon: Headphones,    path: '/listening' },
+      { label: 'Shadowing',          icon: Repeat,        path: '/shadowing' },
       { label: 'Từ vựng',            icon: FileText,      path: '/vocabulary' },
       { label: 'Luyện nói',          icon: Mic,           path: '/speaking' },
       { label: 'Luyện thi TOEIC',    icon: ClipboardList, path: '/exams?type=toeic' },
@@ -161,7 +163,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
       {/* ── LOGO ─────────────────────────────────────────────── */}
       <div className="h-16 px-4 border-b-2 border-slate-300 dark:border-slate-700 shrink-0 flex items-center">
         <Link to="/" className="flex items-center gap-2.5 px-1 group" title="Trang chủ">
-          <AppMascot className="w-8 h-8 shrink-0 group-hover:scale-105 transition-transform" />
+          <AppMascot className="w-10 h-10 shrink-0 group-hover:scale-105 transition-transform" />
           {!collapsed && (
             <span className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight block leading-tight">
               EnglishHub

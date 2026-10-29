@@ -4,12 +4,13 @@ import {
   ArrowLeft, ArrowRight, CheckCircle2, PlayCircle, FileText, HelpCircle, 
   ChevronDown, ChevronRight, Trophy, Menu, X, Clock, Download, MessageSquare, 
   Sparkles, Check, Bookmark, Send, Award, Target, AlertCircle, FileQuestion, 
-  PenTool, UserCheck, RotateCcw, Star, BookOpen, Layers, Loader2, Play, 
+  PenTool, UserCheck, RotateCcw, Star, BookOpen, Layers, Play,
   CheckCircle, ChevronLeft, Lightbulb, Share2, Eye, Calendar, CheckCheck,
   FileCheck2, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
+import LoadingBird from '../../components/LoadingBird';
 import { fetchCourseCurriculumAPI } from '../../api/courseCurriculumService';
 import { 
   getStoredSubmissions, 
@@ -312,13 +313,8 @@ export default function CourseClassroom() {
   if (isLoading || !course || !currentLesson) {
     return (
       <div className="h-screen w-screen bg-slate-50 flex flex-col items-center justify-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center shadow-xs">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-        </div>
-        <div className="text-center space-y-1">
-          <p className="text-sm font-bold text-slate-800 tracking-wide">Đang tải giáo trình khóa học...</p>
-          <p className="text-xs text-slate-500">Đồng bộ video bài giảng, tài liệu & cổng chấm bài</p>
-        </div>
+        <LoadingBird label="Đang tải giáo trình khóa học..." size={180} />
+        <p className="text-xs text-slate-500">Đồng bộ video bài giảng, tài liệu & cổng chấm bài</p>
       </div>
     );
   }

@@ -2,13 +2,18 @@ import React from 'react';
 import { X, Edit3, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function StudyModeModal({ isOpen, onClose, lesson }) {
+export default function StudyModeModal({ isOpen, onClose, lesson, onSelectMode }) {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
 
   const handleSelectMode = (mode) => {
     onClose();
+    if (onSelectMode) {
+      onSelectMode(mode, lesson);
+      return;
+    }
+
     // Navigate to listening page with the selected mode and lesson id if available
     if (lesson?.id) {
       navigate(`/listening?mode=${mode}&lessonId=${lesson.id}`);

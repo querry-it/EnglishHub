@@ -18,7 +18,7 @@ export const submitDictation = async (req, res) => {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Ghi nhận tiến độ học tập
+      // 1. Ghi nhận tiến độ học tập and atomically claim the one-time EXP reward.
       const progress = await tx.userProgress.upsert({
         where: {
           userId_lessonId: {
@@ -34,8 +34,13 @@ export const submitDictation = async (req, res) => {
           userId,
           lessonId,
           score: Math.round(score),
-          completed: true
+          completed: true,
+          expAwarded: false
         }
+      });
+      const rewardClaim = await tx.userProgress.updateMany({
+        where: { id: progress.id, expAwarded: false },
+        data: { expAwarded: true }
       });
 
       // 2. Lấy thông tin bài học để biết độ dài (số từ)
@@ -65,7 +70,17 @@ export const submitDictation = async (req, res) => {
       const expGained = Math.round(potentialExp * (score / 100));
 
       // 4. Sử dụng LevelService để cộng Exp và tính Level
-      const levelResult = await addExperience(tx, userId, expGained, 'COMPLETED_LEARNING');
+      const levelResult = rewardClaim.count > 0
+        ? await addExperience(tx, userId, expGained, 'COMPLETED_LEARNING')
+        : await tx.user.findUnique({
+            where: { id: userId },
+            select: { totalExp: true, level: true }
+          }).then(user => ({
+            totalExp: user.totalExp,
+            level: user.level,
+            levelUp: false,
+            expGained: 0
+          }));
 
       // 5. Ghi Log Audit
       await logAction({

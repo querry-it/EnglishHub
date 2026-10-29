@@ -203,6 +203,7 @@ model UserProgress {
   lessonId  String   @map("lesson_id") @db.Uuid
   score     Int      @default(0)
   completed Boolean  @default(false)
+  expAwarded Boolean @default(true) @map("exp_awarded")
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -230,6 +231,8 @@ model VocabularyProgress {
   userId         String           @map("user_id") @db.Uuid
   vocabularyId   String           @map("vocabulary_id") @db.Uuid
   reviewCount    Int              @default(1) @map("review_count")
+  isNew          Boolean          @default(false) @map("is_new")
+  isCorrect      Boolean          @default(false) @map("is_correct")
   firstReviewedAt DateTime        @default(now()) @map("first_reviewed_at") @db.Timestamptz(6)
   lastReviewedAt DateTime         @default(now()) @map("last_reviewed_at") @db.Timestamptz(6)
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)

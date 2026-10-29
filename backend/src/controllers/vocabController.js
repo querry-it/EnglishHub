@@ -294,11 +294,11 @@ export const getDeckProgress = async (req, res) => {
 
     const wordIds = deck.words.map(word => word.id);
     const words = deck.words.map(word => word.word);
-    const [reviewedWords, existingFlashcards] = await Promise.all([
+    const [progress, existingFlashcards] = await Promise.all([
       wordIds.length
         ? prisma.vocabularyProgress.findMany({
           where: { userId: req.user.id, vocabularyId: { in: wordIds } },
-          select: { vocabularyId: true }
+          select: { vocabularyId: true, isNew: true, isCorrect: true }
         })
         : [],
       words.length
@@ -308,22 +308,79 @@ export const getDeckProgress = async (req, res) => {
         })
         : []
     ]);
-    const reviewedWordIds = new Set(reviewedWords.map(word => word.vocabularyId));
-    const reviewedWordsSet = new Set(existingFlashcards.map(card => card.word.toLowerCase()));
-    deck.words.forEach(word => {
-      if (reviewedWordsSet.has(word.word.toLowerCase())) reviewedWordIds.add(word.id);
-    });
-
+    const learningWordIds = progress.filter(word => !word.isNew && !word.isCorrect).map(word => word.vocabularyId);
+    const masteredWordIds = progress.filter(word => word.isCorrect).map(word => word.vocabularyId);
+    const newWordIds = progress.filter(word => word.isNew).map(word => word.vocabularyId);
+    const addedWords = new Set(existingFlashcards.map(card => card.word.toLowerCase()));
+    const addedWordIds = deck.words
+      .filter(word => addedWords.has(word.word.toLowerCase()))
+      .map(word => word.id);
     res.json({
       success: true,
       total: wordIds.length,
-      reviewedCount: reviewedWordIds.size,
-      percent: wordIds.length ? Math.round((reviewedWordIds.size / wordIds.length) * 100) : 0,
-      reviewedWordIds: [...reviewedWordIds]
+      reviewedCount: masteredWordIds.length,
+      percent: wordIds.length ? Math.round((masteredWordIds.length / wordIds.length) * 100) : 0,
+      reviewedWordIds: masteredWordIds,
+      newWordIds,
+      learningWordIds,
+      masteredWordIds,
+      addedWordIds
     });
   } catch (error) {
     console.error('Lỗi khi tải tiến độ từ vựng:', error);
     res.status(500).json({ success: false, message: 'Không thể tải tiến độ từ vựng.' });
+  }
+};
+
+export const recordDeckAnswer = async (req, res) => {
+  try {
+    const { id: deckId, wordId } = req.params;
+    const { status } = req.body;
+
+    if (!['new', 'learning', 'mastered'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Kết quả trả lời không hợp lệ.' });
+    }
+
+    const vocabulary = await prisma.masterVocabulary.findFirst({
+      where: { id: wordId, deckId },
+      select: { id: true }
+    });
+
+    if (!vocabulary) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy từ trong bộ từ vựng.' });
+    }
+
+    const progress = await prisma.vocabularyProgress.upsert({
+      where: {
+        userId_vocabularyId: {
+          userId: req.user.id,
+          vocabularyId: vocabulary.id
+        }
+      },
+      update: {
+        isNew: status === 'new',
+        isCorrect: status === 'mastered',
+        reviewCount: { increment: 1 },
+        lastReviewedAt: new Date()
+      },
+      create: {
+        userId: req.user.id,
+        vocabularyId: vocabulary.id,
+        isNew: status === 'new',
+        isCorrect: status === 'mastered'
+      },
+      select: {
+        vocabularyId: true,
+        isNew: true,
+        isCorrect: true,
+        reviewCount: true
+      }
+    });
+
+    res.json({ success: true, progress });
+  } catch (error) {
+    console.error('Lỗi khi lưu kết quả ôn từ vựng:', error);
+    res.status(500).json({ success: false, message: 'Không thể lưu kết quả ôn từ vựng.' });
   }
 };
 

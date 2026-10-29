@@ -10,6 +10,7 @@ import instructorRoutes from './routes/instructorRoutes.js';
 import submissionRoutes from './routes/submissionRoutes.js';
 import flashcardRoutes from './routes/flashcardRoutes.js';
 import vocabRoutes from './routes/vocabRoutes.js';
+import pronunciationRoutes from './routes/pronunciationRoutes.js';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/instructor', instructorRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/vocabulary', vocabRoutes);
+app.use('/api/pronunciation', pronunciationRoutes);
 
 app.get('/api', (req, res) => {
   res.json({ message: 'EnglishHub Backend API Server is running' });
